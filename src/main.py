@@ -61,6 +61,7 @@ def open_paste_window(root):
 def open_crop_window(root):
     CropImageWindow(root)
 
+
 def display_image(image: Image.Image | None, label: tk.Label) -> Image.Image | None:
     if image is None:
         print("Error: no image exist to display")
@@ -204,18 +205,19 @@ class TransparencyWindow(tk.Toplevel):
 
 class PasteImageWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
+        global label_temp
+        label_temp.bind("<Button-1>", lambda event: self.load_coords(event))
+
         super().__init__(parent)
         self.parent = parent
         self.geometry("400x150")
         self.overlay_img: Image.Image | None = None
         self.title("Paste Image")
+        self.attributes("-topmost", True)
 
         # Open Image Button
         open_button = tk.Button(self, text="Open Image", command=self.open_image)
         open_button.pack(pady=2, side="top")
-        # Load coords button
-        load_button = tk.Button(self, text="Load coords", command=self.load_coords)
-        load_button.pack(pady=2, side="top")
         # Paste Button
         paste_button = tk.Button(self, text="Paste", command=self.paste_image_onto_canvas)
         paste_button.pack(pady=10, side="bottom")
@@ -244,12 +246,12 @@ class PasteImageWindow(tk.Toplevel):
             except Exception as e:
                 print(f"Error opening image: {e}")
 
-    def load_coords(self):
+    def load_coords(self, event: tk.Event):
         global coord_x, coord_y
         self.x_entry.delete(0, tk.END)
         self.y_entry.delete(0, tk.END)
-        self.x_entry.insert(0, str(coord_x))
-        self.y_entry.insert(0, str(coord_y))
+        self.x_entry.insert(0, str(event.x))
+        self.y_entry.insert(0, str(event.y))
 
     def paste_image_onto_canvas(self):
         global img_current, img_temp, label_temp

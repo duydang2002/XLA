@@ -1,12 +1,23 @@
 import tkinter as tk
 from tkinter import Menu, filedialog, messagebox
 from PIL import Image, ImageTk
-
+import numpy as np
+import cv2
 img_current: Image.Image | None = None
 img_temp: Image.Image | None = None
 coord_x: int = 0
 coord_y: int = 0
 
+current_r = 100
+current_g = 100
+current_b = 100
+
+current_contrast = 100
+
+exposure_value = 0
+contrast_value = 0
+shadow_value = 0
+highlight_value = 0
 
 def open_image() -> None:
     global img_current, img_temp, label_current, label_temp
@@ -73,7 +84,13 @@ def display_image(image: Image.Image | None, label: tk.Label) -> Image.Image | N
     label.image = img_tk
     return image
 
+# Function to open the color adjustment 
 
+def open_color_window(root):
+   EditColorWindow(root)
+def open_contrast_window(root):
+    EditContrastWindow(root)
+    
 class ResizeWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk) -> None:
         global img_current, img_temp
@@ -365,7 +382,106 @@ class CropImageWindow(tk.Toplevel):
         except ValueError as e:
             messagebox.showerror("Error", f"Invalid input: {e}")
 
+class EditColorWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Adjust Colors")
+        self.geometry("200x250")
+        
+        # Variables to track RGB values from scales
+        self.r_value = tk.IntVar(value=current_r)
+        self.g_value = tk.IntVar(value=current_g)
+        self.b_value = tk.IntVar(value=current_b)
 
+        # Red Scale
+        self.r_scale = tk.Scale(self, from_=10, to=200, orient="horizontal", label="Red", variable=self.r_value)
+        self.r_scale.pack()
+        # Green Scale
+        self.g_scale = tk.Scale(self, from_=10, to=200, orient="horizontal", label="Green", variable=self.g_value)
+        self.g_scale.pack()
+        # Blue Scale
+        self.b_scale = tk.Scale(self, from_=10, to=200, orient="horizontal", label="Blue", variable=self.b_value)
+        self.b_scale.pack()
+        
+        self.reset_button = tk.Button(self, text="Reset", command=self.reset_color )
+        self.reset_button.pack(pady=10)
+        
+        # Update color when scale values change
+        def on_scale_change(event=None):
+            self.update_color(self.r_value.get(), self.g_value.get(), self.b_value.get())
+
+        # Bind scale changes to color update
+        self.r_scale.bind("<ButtonRelease-1>", on_scale_change)
+        self.g_scale.bind("<ButtonRelease-1>", on_scale_change)
+        self.b_scale.bind("<ButtonRelease-1>", on_scale_change)
+
+    def update_color(self, r, g, b):
+        global img_current, img_temp, current_r, current_g, current_b
+    
+        if img_temp:
+            # Cập nhật giá trị RGB hiện tại
+            
+            # Điều chỉnh các kênh màu
+            r_factor = r / 100
+            g_factor = g / 100
+            b_factor = b / 100
+
+            # Tách hình ảnh thành các kênh màu R, G, B
+            
+            r_img, g_img, b_img, a = img_current.split()
+
+            # Áp dụng các thay đổi dựa trên giá trị RGB đã lưu
+            r_img = r_img.point(lambda i: i * r_factor)
+            g_img = g_img.point(lambda i: i * g_factor)
+            b_img = b_img.point(lambda i: i * b_factor)
+
+            # Gộp các kênh màu và hiển thị
+            img_temp = Image.merge("RGBA", (r_img, g_img, b_img,a))
+            current_r = r
+            current_g = g
+            current_b = b
+            display_image(img_temp, label_temp)
+    def reset_color(self):
+        self.r_scale.set(100)
+        self.g_scale.set(100)
+        self.b_scale.set(100)
+        self.update_color(100,100,100)
+
+class EditContrastWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Adjust Contrast Window")
+        self.geometry("200x150")
+        
+        #Variable to keep track of contrast value
+        self.contrast_value = tk.IntVar(value = current_contrast)
+        
+        # Contrast scale
+        self.contrast_scale = tk.Scale(self, from_=10, to = 200, orient="horizontal", label= "Contrast", variable= self.contrast_value)
+        self.contrast_scale.pack()
+        
+        self.reset_button = tk.Button(self, text="Reset", command=self.reset_contrast)
+        self.reset_button.pack(pady=10)
+        
+        # Update color when scale values change
+        def on_scale_change(event=None):
+            self.update_contrast(self.contrast_value.get())
+
+        # Bind scale changes to color update
+        self.contrast_scale.bind("<ButtonRelease-1>", on_scale_change)
+        
+    def update_contrast(self, contrast_value):
+        global current_contrast,img_temp, img_current
+        img_cv = np.array(img_current)
+        img_cv_abs = cv2.convertScaleAbs(img_cv, alpha= ( contrast_value/ 100), beta=0)
+        img_temp = Image.fromarray(img_cv_abs)
+        current_contrast = contrast_value
+        display_image(img_temp, label_temp)
+    def reset_contrast(self):
+        self.contrast_scale.set(100)
+        self.update_contrast(100)
 if __name__ == "__main__":
     app = tk.Tk()
 
@@ -376,16 +492,19 @@ if __name__ == "__main__":
 
     file_menu = Menu(menu_bar, tearoff=0)
     edit_menu = Menu(menu_bar, tearoff=0)
+    process_menu = Menu(menu_bar,tearoff=0)
     menu_bar.add_cascade(label="File", menu=file_menu)
     menu_bar.add_cascade(label="Edit", menu=edit_menu)
-
+    menu_bar.add_cascade(label="Process", menu=process_menu)
     file_menu.add_command(label="Open", command=open_image)
     file_menu.add_command(label="Exit", command=quit)
     edit_menu.add_command(label="Resize", command=lambda: open_resize_window(app))
     edit_menu.add_command(label="Change transparency", command=lambda: open_tpc_window(app))
     edit_menu.add_command(label="Paste image", command=lambda: open_paste_window(app))
     edit_menu.add_command(label="Crop image", command=lambda: open_crop_window(app))
-
+    process_menu.add_command(label="Edit Color", command=lambda:open_color_window(app))
+    process_menu.add_command(label="Contrast", command=lambda:open_contrast_window(app))
+    
     # Label to display label_current coordinates
     coords_label = tk.Label(app, text="Left click to see coordinates", font=("Helvetica", 14))
     coords_label.pack(side="top", padx=0, pady=0)

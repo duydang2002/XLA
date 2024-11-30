@@ -72,6 +72,9 @@ def open_paste_window(root):
 def open_crop_window(root):
     CropImageWindow(root)
 
+def open_invert_window(root):
+    InvertColorWindow(root)
+
 
 def display_image(image: Image.Image | None, label: tk.Label) -> Image.Image | None:
     if image is None:
@@ -87,7 +90,7 @@ def display_image(image: Image.Image | None, label: tk.Label) -> Image.Image | N
 # Function to open the color adjustment 
 
 def open_color_window(root):
-   EditColorWindow(root)
+    EditColorWindow(root)
 def open_contrast_window(root):
     EditContrastWindow(root)
     
@@ -482,11 +485,40 @@ class EditContrastWindow(tk.Toplevel):
     def reset_contrast(self):
         self.contrast_scale.set(100)
         self.update_contrast(100)
+
+class InvertColorWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Invert Colors")
+        self.geometry("200x100")
+
+        # Apply button to invert colors
+        apply_button = tk.Button(self, text="Invert Colors", command=self.invert_colors)
+        apply_button.pack(pady=20)
+
+    def invert_colors(self):
+        global img_current, img_temp, label_temp
+        if img_temp:
+            # Convert image to numpy array
+            local_image_current = img_current.convert('RGB')
+            img_np = np.array(local_image_current)
+            # Invert colors
+            img_np = 255 - img_np
+            # Convert back to PIL image
+            local_img_temp = Image.fromarray(img_np)
+            # Update image_temp and display
+            img_temp = local_img_temp.convert('RGBA')
+            display_image(local_img_temp, label_temp)
+            display_image(local_img_temp, label_temp1)
+
+
 if __name__ == "__main__":
     app = tk.Tk()
 
     app.title("Image Editor")
     app.geometry("1200x800")
+    app.state("zoomed")
     menu_bar = Menu(app)
     app.config(menu=menu_bar)
 
@@ -504,6 +536,7 @@ if __name__ == "__main__":
     edit_menu.add_command(label="Crop image", command=lambda: open_crop_window(app))
     process_menu.add_command(label="Edit Color", command=lambda:open_color_window(app))
     process_menu.add_command(label="Contrast", command=lambda:open_contrast_window(app))
+    process_menu.add_command(label="Invert Color", command=lambda:open_invert_window(app))
     
     # Label to display label_current coordinates
     coords_label = tk.Label(app, text="Left click to see coordinates", font=("Helvetica", 14))

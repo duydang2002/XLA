@@ -641,7 +641,7 @@ class EditHistogramWindow(tk.Toplevel):
                 mask_min_value, mask_max_value = None, None
 
                 if adjusted_values.size > 0:
-                    mask_min_value = adjusted_values.min()
+                    mask_min_value = min(254,adjusted_values.min())
                     mask_max_value = adjusted_values.max()
                 if mask_min_value is not None or mask_max_value is not None:
                     if highlight_value > 0:
@@ -661,7 +661,7 @@ class EditHistogramWindow(tk.Toplevel):
             mask_min_value, mask_max_value = None, None
 
             if adjusted_values.size > 0:
-                mask_min_value = adjusted_values.min()
+                mask_min_value = min(254,adjusted_values.min())
                 mask_max_value = adjusted_values.max()
 
             if mask_min_value is not None or mask_max_value is not None:
@@ -689,7 +689,7 @@ class EditHistogramWindow(tk.Toplevel):
         mask = (img_array < lower_bound)
 
         max_value = np.max(img_array)
-        min_value = np.min(img_array)
+        min_value = min(np.min(img_array), 254)
 
         if self.baseline_image.mode == 'RGB' and not self.is_gray_scale(self.baseline_image):
             # Handle RGB images
@@ -702,7 +702,7 @@ class EditHistogramWindow(tk.Toplevel):
                 mask_min_value, mask_max_value = None, None
 
                 if adjusted_values.size > 0:
-                    mask_min_value = adjusted_values.min()
+                    mask_min_value = min(254,adjusted_values.min())
                     mask_max_value = adjusted_values.max()
 
                 if mask_min_value is not None or mask_max_value is not None:
@@ -723,7 +723,7 @@ class EditHistogramWindow(tk.Toplevel):
             mask_min_value, mask_max_value = None, None
 
             if adjusted_values.size > 0:
-                mask_min_value = adjusted_values.min()
+                mask_min_value = min(254,adjusted_values.min())
                 mask_max_value = adjusted_values.max()
 
             if mask_min_value is not None or mask_max_value is not None:

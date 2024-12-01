@@ -226,6 +226,214 @@ class TransparencyWindow(tk.Toplevel):
             display_image(img_temp, label_temp)
 
 
+# class PasteImageWindow(tk.Toplevel):
+#     def __init__(self, parent: tk.Tk):
+#         global label_temp
+#         label_temp.bind("<Button-1>", lambda event: self.load_coords(event))
+
+#         super().__init__(parent)
+#         self.parent = parent
+#         self.geometry("400x150")
+#         self.overlay_img: Image.Image | None = None
+#         self.title("Paste Image")
+#         self.attributes("-topmost", True)
+
+#         # Open Image Button
+#         open_button = tk.Button(self, text="Open Image", command=self.open_image)
+#         open_button.pack(pady=2, side="top")
+#         # Paste Button
+#         paste_button = tk.Button(self, text="Paste", command=self.paste_image_onto_canvas)
+#         paste_button.pack(pady=10, side="bottom")
+#         # X Coordinate Field
+#         x_label = tk.Label(self, text="X Coordinate")
+#         x_label.pack(pady=5, side="left")
+#         self.x_entry = tk.Entry(self)
+#         self.x_entry.insert(0, "0")
+#         self.x_entry.pack(pady=5, side="left")
+#         # Y Coordinate Field
+#         y_label = tk.Label(self, text="Y Coordinate")
+#         y_label.pack(pady=5, side="left")
+#         self.y_entry = tk.Entry(self)
+#         self.y_entry.insert(0, "0")  # Default value
+#         self.y_entry.pack(pady=5, side="left")
+
+#     def open_image(self):
+#         file_path = filedialog.askopenfilename(
+#             title="Select Image to Paste",
+#             filetypes=([("Image files", "*.jpg;*.jpeg;*.png;*.gif")])
+#         )
+#         if file_path:
+#             try:
+#                 self.overlay_img = Image.open(file_path).convert("RGBA")
+#                 messagebox.showinfo("Success", "Image loaded successfully.")
+#             except Exception as e:
+#                 print(f"Error opening image: {e}")
+
+#     def load_coords(self, event: tk.Event):
+#         global coord_x, coord_y
+#         self.x_entry.delete(0, tk.END)
+#         self.y_entry.delete(0, tk.END)
+#         self.x_entry.insert(0, str(event.x))
+#         self.y_entry.insert(0, str(event.y))
+
+    
+#     def paste_image_onto_canvas(self):
+#         global img_current, img_temp, label_temp
+#         x = int(self.x_entry.get())
+#         y = int(self.y_entry.get())
+#         if (self.overlay_img is None) \
+#                 or (x < 0 or y < 0) \
+#                 or ((x, y) > img_current.size):
+#             return
+#         # alpha mask of 255, overwrites all pixels
+#         mask = Image.new("L", self.overlay_img.size, 255)
+#         img_temp = img_current.copy()
+#         img_temp.paste(self.overlay_img, (x, y), mask)
+#         display_image(img_temp, label_temp)
+
+# A class to crop the image with mouse
+class MouseCropOverlayWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk, overlay_img: Image.Image, callback):
+        super().__init__(parent)
+        self.parent = parent
+        self.overlay_img = overlay_img
+        self.callback = callback
+        self.title("Crop Overlay Image")
+        self.geometry("800x600")
+        self.state("zoomed")
+
+        self.canvas = tk.Canvas(self, cursor="cross")
+        self.canvas.pack(fill="both", expand=True)
+
+        self.img_tk = ImageTk.PhotoImage(self.overlay_img,)
+        self.canvas.create_image(0, 0, anchor="nw", image=self.img_tk)
+
+        self.rect = None
+        self.start_x = None
+        self.start_y = None
+
+        self.canvas.bind("<ButtonPress-1>", self.on_button_press)
+        self.canvas.bind("<B1-Motion>", self.on_mouse_drag)
+        self.canvas.bind("<ButtonRelease-1>", self.on_button_release)
+
+        apply_button = tk.Button(self, text="Apply", command=self.apply_crop)
+        apply_button.pack(pady=10)
+
+    def on_button_press(self, event):
+        self.start_x = event.x
+        self.start_y = event.y
+        if self.rect:
+            self.canvas.delete(self.rect)
+        self.rect = self.canvas.create_rectangle(self.start_x, self.start_y, self.start_x, self.start_y, outline="red")
+
+    def on_mouse_drag(self, event):
+        cur_x, cur_y = (event.x, event.y)
+        self.canvas.coords(self.rect, self.start_x, self.start_y, cur_x, cur_y)
+
+    def on_button_release(self, event):
+        pass
+
+    def apply_crop(self):
+        x0, y0, x1, y1 = self.canvas.coords(self.rect)
+        x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
+        if x0 > x1: x0, x1 = x1, x0
+        if y0 > y1: y0, y1 = y1, y0
+        cropped_overlay_image = self.overlay_img.crop((x0, y0, x1, y1))
+        self.callback(cropped_overlay_image)
+        self.destroy()
+
+class ResizeOverlayWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk, overlay_img: Image.Image, callback):
+        super().__init__(parent)
+        self.parent = parent
+        self.overlay_img = overlay_img
+        self.callback = callback
+        self.title("Resize Overlay Image")
+        self.geometry("400x300")
+        self.state("zoomed")
+
+        self.original_width, self.original_height = overlay_img.size
+        self.aspect_ratio = self.original_width / self.original_height
+
+        # Labels for original dimensions
+        tk.Label(self, text=f"Original Dimensions: {self.original_width}x{self.original_height}").pack(pady=5)
+
+        # Variables for new dimensions
+        self.new_width_var = tk.IntVar(value=self.original_width)
+        self.new_height_var = tk.IntVar(value=self.original_height)
+
+        # Frame for new dimensions entry fields
+        dimensions_frame = tk.Frame(self)
+        dimensions_frame.pack(pady=5)
+
+        # Entry fields for new dimensions
+        tk.Label(dimensions_frame, text="New Width:").grid(row=0, column=0, padx=5)
+        self.new_width_entry = tk.Entry(dimensions_frame, textvariable=self.new_width_var)
+        self.new_width_entry.grid(row=0, column=1, padx=5)
+        self.new_width_var.trace_add("write", self.on_width_change)
+
+        tk.Label(dimensions_frame, text="New Height:").grid(row=0, column=2, padx=5)
+        self.new_height_entry = tk.Entry(dimensions_frame, textvariable=self.new_height_var)
+        self.new_height_entry.grid(row=0, column=3, padx=5)
+        self.new_height_var.trace_add("write", self.on_height_change)
+
+        # Aspect ratio checkbox
+        self.aspect_ratio_var = tk.BooleanVar(value=True)
+        self.aspect_ratio_checkbox = tk.Checkbutton(self, text="Maintain aspect ratio", variable=self.aspect_ratio_var)
+        self.aspect_ratio_checkbox.pack(pady=5)
+
+        # Canvas for preview
+        self.preview_canvas = tk.Canvas(self, width=1000, height=600)
+        self.preview_canvas.pack(pady=10)
+        self.update_preview()
+
+        # Apply button
+        apply_button = tk.Button(self, text="Apply", command=self.apply_resize)
+        apply_button.pack(pady=10)
+
+    def on_width_change(self, *args):
+        if self.aspect_ratio_var.get():
+            try:
+                new_width = self.new_width_var.get()
+                new_height = int(new_width / self.aspect_ratio)
+                self.new_height_var.set(new_height)
+            except tk.TclError:
+                pass  # Ignore invalid input during typing
+        self.update_preview()
+
+    def on_height_change(self, *args):
+        if self.aspect_ratio_var.get():
+            try:
+                new_height = self.new_height_var.get()
+                new_width = int(new_height * self.aspect_ratio)
+                self.new_width_var.set(new_width)
+            except tk.TclError:
+                pass  # Ignore invalid input during typing
+        self.update_preview()
+
+    def update_preview(self):
+        self.preview_canvas.delete("all")
+        try:
+            new_width = self.new_width_var.get()
+            new_height = self.new_height_var.get()
+            resized_img = self.overlay_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            self.img_tk = ImageTk.PhotoImage(resized_img)
+            self.preview_canvas.create_image(500 ,300, anchor="center", image=self.img_tk)
+        except tk.TclError:
+            pass  # Ignore invalid input during typing
+
+    def apply_resize(self):
+        try:
+            new_width = int(self.new_width_entry.get())
+            new_height = int(self.new_height_entry.get())
+            if new_width <= 0 or new_height <= 0:
+                raise ValueError("Dimensions must be positive integers.")
+            resized_overlay_image = self.overlay_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            self.callback(resized_overlay_image)
+            self.destroy()
+        except ValueError as e:
+            messagebox.showerror("Error", f"Invalid input: {e}")
+
 class PasteImageWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
         global label_temp
@@ -233,7 +441,7 @@ class PasteImageWindow(tk.Toplevel):
 
         super().__init__(parent)
         self.parent = parent
-        self.geometry("400x150")
+        self.geometry("400x250")
         self.overlay_img: Image.Image | None = None
         self.title("Paste Image")
         self.attributes("-topmost", True)
@@ -241,6 +449,12 @@ class PasteImageWindow(tk.Toplevel):
         # Open Image Button
         open_button = tk.Button(self, text="Open Image", command=self.open_image)
         open_button.pack(pady=2, side="top")
+        # Crop Button
+        crop_button = tk.Button(self, text="Crop", command=self.open_crop_window)
+        crop_button.pack(pady=2, side="top")
+        # Resize Button
+        resize_button = tk.Button(self, text="Resize", command=self.open_resize_window)
+        resize_button.pack(pady=2, side="top")
         # Paste Button
         paste_button = tk.Button(self, text="Paste", command=self.paste_image_onto_canvas)
         paste_button.pack(pady=10, side="bottom")
@@ -269,6 +483,17 @@ class PasteImageWindow(tk.Toplevel):
             except Exception as e:
                 print(f"Error opening image: {e}")
 
+    def open_crop_window(self):
+        if self.overlay_img:
+            MouseCropOverlayWindow(self, self.overlay_img, self.set_overlay_img)
+
+    def open_resize_window(self):
+        if self.overlay_img:
+            ResizeOverlayWindow(self, self.overlay_img, self.set_overlay_img)
+
+    def set_overlay_img(self, img):
+        self.overlay_img = img
+
     def load_coords(self, event: tk.Event):
         global coord_x, coord_y
         self.x_entry.delete(0, tk.END)
@@ -289,7 +514,6 @@ class PasteImageWindow(tk.Toplevel):
         img_temp = img_current.copy()
         img_temp.paste(self.overlay_img, (x, y), mask)
         display_image(img_temp, label_temp)
-
 
 class CropImageWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):

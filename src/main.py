@@ -20,7 +20,7 @@ shadow_value = 0
 highlight_value = 0
 
 def open_image() -> None:
-    global img_current, img_temp, label_current, label_temp
+    global img_current, img_temp, label_current, label_temp, exposure_value, contrast_value, shadow_value, highlight_value, shadow_value
     file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg;*.jpeg;*.png;*.gif")])
     if file_path:
         img_current = Image.open(file_path)
@@ -35,6 +35,11 @@ def open_image() -> None:
         img_temp = img_current.copy()
         display_image(img_current, label_current)
         display_image(img_temp, label_temp)
+
+        exposure_value = 0
+        contrast_value = 0
+        shadow_value = 0
+        highlight_value = 0
     else:
         print("Error: cannot open image file")
 
@@ -90,6 +95,8 @@ def open_color_window(root):
    EditColorWindow(root)
 def open_contrast_window(root):
     EditContrastWindow(root)
+def open_histogram_window(root):
+    EditHistogramWindow(root)
     
 class ResizeWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk) -> None:
@@ -482,6 +489,333 @@ class EditContrastWindow(tk.Toplevel):
     def reset_contrast(self):
         self.contrast_scale.set(100)
         self.update_contrast(100)
+
+class EditHistogramWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Histogram")
+        self.geometry("600x700")
+        
+        # Images
+        global img_current, img_temp 
+        self.baseline_image = self.convert_to_rgb(img_current)
+        self.edited_image = self.convert_to_rgb(img_temp)
+        
+        # Sliders' initial values
+        self.exposure_value = 0
+        self.contrast_value = 0
+        self.shadow_value = 0
+        self.highlight_value = 0
+        
+        # Create the histogram window layout
+        self.create_histogram_window()
+
+    def convert_to_rgb(self, image):
+        if image.mode == "RGBA":
+            return image.convert("RGB")
+        return image
+
+    def is_gray_scale(self, image):
+        if image.mode == "L":
+            return True
+        if image.mode == "RGBA":
+            image = image.convert("RGB")
+        w, h = image.size
+        for i in range(w):
+            for j in range(h):
+                pixel = image.getpixel((i, j))
+                if isinstance(pixel, tuple) and len(pixel) == 3:
+                    r, g, b = pixel
+                    if r != g or g != b:
+                        return False
+                else:
+                    return True
+        return True
+
+    def create_histogram_window(self):
+        # Histogram canvas
+        bins = 256
+        bar_width = 2
+        canvas_width = bins * bar_width
+        canvas_height = 200
+
+        self.histogram_canvas = tk.Canvas(
+            self, width=canvas_width, height=canvas_height, bg="white", highlightthickness=1, relief="solid"
+        )
+        self.histogram_canvas.pack(pady=10)
+
+        # Sliders
+        self.create_slider("Exposure", -255, 255, self.on_exposure_slider_change)
+        self.create_slider("Contrast", -100, 100, self.on_contrast_slider_change)
+        self.create_slider("Highlights", -100, 100, self.on_highlights_slider_change)
+        self.create_slider("Shadows", -100, 100, self.on_shadows_slider_change)
+
+        # Equalize histogram button
+        equalize_button = tk.Button(self, text="Equalize Histogram", command=self.equalize_histogram)
+        equalize_button.pack(pady=10)
+
+        # Draw the initial histogram
+        self.update_histogram()
+
+    def create_slider(self, label, from_, to, command):
+        slider = tk.Scale(self, from_=from_, to=to, orient="horizontal", label=label, command=command)
+        slider.set(0)
+        slider.pack(pady=10)
+        if label == "Exposure":
+            global exposure_value
+            slider.set(exposure_value)
+        elif label == "Contrast":
+            global contrast_value
+            slider.set(contrast_value)
+        elif label == "Highlights":
+            global highlight_value
+            slider.set(highlight_value)
+        elif label == "Shadows":
+            global shadow_value
+            slider.set(shadow_value)
+        return slider
+
+    def update_histogram(self):
+        histogram_data = self.get_histogram_data(self.edited_image)
+        self.draw_histogram(histogram_data)
+
+    def get_histogram_data(self, image):
+        if image is None:
+            return None
+        if image.mode == "RGB" and not self.is_gray_scale(image):
+            r, g, b = image.split()
+            return r.histogram()[:256], g.histogram()[:256], b.histogram()[:256]
+        else:
+            grayscale_img = image.convert("L")
+            histogram = grayscale_img.histogram()[:256]
+            return histogram, histogram, histogram
+
+    def draw_histogram(self, data):
+        self.histogram_canvas.delete("all")
+
+        if data is None:
+            return
+
+        max_height = 200
+        bar_width = 2
+        total_pixels = self.baseline_image.width * self.baseline_image.height
+
+        if self.is_gray_scale(self.baseline_image):
+            channel_colors = ["black"]
+            channel_offsets = [0]
+        elif self.baseline_image.mode == 'RGB' and not self.is_gray_scale(self.baseline_image):
+            channel_colors = ["red", "green", "blue"]
+            channel_offsets = [-1, 0, 1]
+
+        for channel, color in enumerate(channel_colors):
+            for i in range(len(data[channel])):
+                bar_height = int(data[channel][i] / (total_pixels / 25) * max_height)
+                x0 = i * bar_width + channel_offsets[channel]
+                y0 = max_height - bar_height
+                x1 = x0 + bar_width - 2
+                y1 = max_height
+                self.histogram_canvas.create_rectangle(x0, y0, x1, y1, fill=color, outline="")
+
+    def adjust_highlights(self, img_array, highlight_value):
+        grayscale_img = self.baseline_image.convert("L")
+        hist = grayscale_img.histogram()[:256]
+        brightest_peak = np.argmax(hist[127:]) + 200
+
+        highlight_range = 20
+        lower_bound = max(0, brightest_peak - highlight_range)
+
+        mask = (img_array >= lower_bound)
+
+        max_value = max(255, np.max(img_array))
+        min_value = min(0, np.min(img_array))
+
+        if self.baseline_image.mode == 'RGB' and not self.is_gray_scale(self.baseline_image):
+            # Handle RGB images
+            for channel in range(3): 
+                channel_data = img_array[:, :, channel]
+                channel_data[mask[:, :, channel]] += highlight_value/4
+                img_array[:, :, channel] = np.clip(channel_data, 0, 255)
+
+                adjusted_values = channel_data[mask[:, :, channel]]
+                mask_min_value, mask_max_value = None, None
+
+                if adjusted_values.size > 0:
+                    mask_min_value = adjusted_values.min()
+                    mask_max_value = adjusted_values.max()
+                if mask_min_value is not None or mask_max_value is not None:
+                    if highlight_value > 0:
+                        stretched_values = ((adjusted_values - mask_min_value) / (mask_max_value - mask_min_value)) * (255 - lower_bound) + lower_bound
+                        channel_data[mask[:, :, channel]] = np.clip(stretched_values, 0, 255)
+                    elif highlight_value < 0:
+                        compressed_values = ((img_array[:, :, channel] - min_value) / (max_value - min_value)) * 255  
+                        channel_data = np.clip(compressed_values, 0, 255)
+                img_array[:, :, channel] = np.clip(channel_data, 0, 255)
+        else:
+            # Handle grayscale images
+            img_array[mask] += highlight_value / 4
+            img_array = np.clip(img_array, 0, 255)
+
+            # Calculate min and max for the mask
+            adjusted_values = img_array[mask]
+            mask_min_value, mask_max_value = None, None
+
+            if adjusted_values.size > 0:
+                mask_min_value = adjusted_values.min()
+                mask_max_value = adjusted_values.max()
+
+            if mask_min_value is not None or mask_max_value is not None:
+                if highlight_value > 0:
+                    stretched_values = ((adjusted_values - mask_min_value) / (mask_max_value - mask_min_value)) * (255 - lower_bound) + lower_bound
+                    img_array[mask] = np.clip(stretched_values, 0, 255)
+                elif highlight_value < 0:
+                    compressed_values = ((img_array - min_value) / (max_value - min_value)) * 255
+                    img_array = np.clip(compressed_values, 0, 255)
+
+        img_array = np.clip(img_array, 0, 255).astype(np.uint8)
+
+        return img_array
+    
+    def adjust_shadows(self, img_array, shadow_value):
+        img_array = img_array.astype(np.float64)
+
+        grayscale_img = self.baseline_image.convert("L")
+        hist = grayscale_img.histogram()[:256]
+        brightest_peak = np.argmax(hist[127:]) + 127
+
+        shadow_range = 20
+        lower_bound = max(0, brightest_peak - shadow_range)
+
+        mask = (img_array < lower_bound)
+
+        max_value = np.max(img_array)
+        min_value = np.min(img_array)
+
+        if self.baseline_image.mode == 'RGB' and not self.is_gray_scale(self.baseline_image):
+            # Handle RGB images
+            for channel in range(3):
+                channel_data = img_array[:, :, channel]
+                channel_data[mask[:, :, channel]] += shadow_value / 4
+                img_array[:, :, channel] = np.clip(channel_data, 0, 255)
+
+                adjusted_values = channel_data[mask[:, :, channel]]
+                mask_min_value, mask_max_value = None, None
+
+                if adjusted_values.size > 0:
+                    mask_min_value = adjusted_values.min()
+                    mask_max_value = adjusted_values.max()
+
+                if mask_min_value is not None or mask_max_value is not None:
+                    if shadow_value > 0:
+                        stretched_values = ((img_array[:, :, channel] - min_value) / (max_value - min_value)) * 255
+                        channel_data = np.clip(stretched_values, 0, 255)
+                    elif shadow_value < 0:
+                        compressed_values = ((adjusted_values - mask_min_value) / (mask_max_value - mask_min_value)) * (lower_bound)
+                        channel_data[mask[:, :, channel]] = np.clip(compressed_values, 0, 255)
+
+                img_array[:, :, channel] = np.clip(channel_data, 0, 255)
+        else:
+            # Handle grayscale images
+            img_array[mask] += shadow_value / 4
+            img_array = np.clip(img_array, 0, 255)
+
+            adjusted_values = img_array[mask]
+            mask_min_value, mask_max_value = None, None
+
+            if adjusted_values.size > 0:
+                mask_min_value = adjusted_values.min()
+                mask_max_value = adjusted_values.max()
+
+            if mask_min_value is not None or mask_max_value is not None:
+                if shadow_value > 0:
+                    stretched_values = ((img_array - min_value) / (max_value - min_value)) * 255
+                    img_array = np.clip(stretched_values, 0, 255)
+                elif shadow_value < 0:
+                    compressed_values = ((adjusted_values - mask_min_value) / (mask_max_value - mask_min_value)) * (lower_bound)
+                    img_array[mask] = compressed_values
+
+            img_array = np.clip(img_array, 0, 255).astype(np.uint8)
+
+        return img_array
+
+
+    def apply_adjustments(self):
+        global exposure_value, contrast_value, shadow_value, highlight_value
+        img_array = np.array(self.baseline_image).astype(np.float32)
+
+        # exposure
+        img_array += exposure_value
+
+        # contranst
+        if self.baseline_image.mode == 'RGB' and not self.is_gray_scale(self.baseline_image):
+            # For RGB images
+            mean_r = np.mean(img_array[:, :, 0])
+            mean_g = np.mean(img_array[:, :, 1])
+            mean_b = np.mean(img_array[:, :, 2])
+
+            contrast_scale = 1 + (contrast_value / 170.0)
+
+            img_array[:, :, 0] = (img_array[:, :, 0] - mean_r) * contrast_scale + mean_r
+            img_array[:, :, 1] = (img_array[:, :, 1] - mean_g) * contrast_scale + mean_g
+            img_array[:, :, 2] = (img_array[:, :, 2] - mean_b) * contrast_scale + mean_b
+
+        else:
+            # For grayscale images
+            mean = np.mean(img_array)
+            contrast_scale = 1 + (contrast_value / 170.0)
+            img_array = (img_array - mean) * contrast_scale + mean
+
+        # highlights 
+        img_array = self.adjust_highlights(img_array, highlight_value)
+
+        # shadows
+        img_array = self.adjust_shadows(img_array, shadow_value)
+        
+        # Clip and convert to uint8
+        img_array = np.clip(img_array, 0, 255).astype(np.uint8)
+
+        # Update `edited_img`
+        self.edited_image = Image.fromarray(img_array)
+
+        # Update histogram
+        display_image(self.edited_image, label_temp)
+        updated_histogram_data = self.get_histogram_data(self.edited_image)
+        self.draw_histogram(updated_histogram_data)
+
+    def equalize_histogram(self):
+        if self.baseline_image is None:
+            return
+        if self.baseline_image.mode == "RGB" and not self.is_gray_scale(self.baseline_image):
+            img_array = np.array(self.baseline_image)
+            for channel in range(3):
+                img_array[:, :, channel] = cv2.equalizeHist(img_array[:, :, channel])
+            self.edited_image = Image.fromarray(img_array)
+        else:
+            grayscale_img = cv2.cvtColor(np.array(self.baseline_image), cv2.COLOR_RGB2GRAY)
+            equalized_img = cv2.equalizeHist(grayscale_img)
+            self.edited_image = Image.fromarray(cv2.cvtColor(equalized_img, cv2.COLOR_GRAY2RGB))
+        self.update_histogram()
+
+    def on_exposure_slider_change(self, value):
+        global exposure_value
+        exposure_value = int(value)
+        self.apply_adjustments()
+
+    def on_contrast_slider_change(self, value):
+        global contrast_value
+        contrast_value = int(value)
+        self.apply_adjustments()
+
+    def on_highlights_slider_change(self, value):
+        global highlight_value
+        highlight_value = int(value)
+        self.apply_adjustments()
+
+    def on_shadows_slider_change(self, value):
+        global shadow_value
+        shadow_value = int(value)
+        self.apply_adjustments()
+
 if __name__ == "__main__":
     app = tk.Tk()
 
@@ -504,6 +838,7 @@ if __name__ == "__main__":
     edit_menu.add_command(label="Crop image", command=lambda: open_crop_window(app))
     process_menu.add_command(label="Edit Color", command=lambda:open_color_window(app))
     process_menu.add_command(label="Contrast", command=lambda:open_contrast_window(app))
+    process_menu.add_command(label="Histogram", command=lambda:open_histogram_window(app))
     
     # Label to display label_current coordinates
     coords_label = tk.Label(app, text="Left click to see coordinates", font=("Helvetica", 14))

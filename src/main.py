@@ -75,6 +75,9 @@ def open_crop_window(root):
 def open_invert_window(root):
     InvertColorWindow(root)
 
+def open_mouse_crop_window(root):
+    MouseCropWindow(root)
+
 
 def display_image(image: Image.Image | None, label: tk.Label) -> Image.Image | None:
     if image is None:
@@ -512,6 +515,53 @@ class InvertColorWindow(tk.Toplevel):
             display_image(local_img_temp, label_temp)
             display_image(local_img_temp, label_temp1)
 
+class MouseCropWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        global img_current, img_temp
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Mouse Crop Image")
+        self.geometry("800x600")
+
+        self.canvas = tk.Canvas(self, cursor="cross")
+        self.canvas.pack(fill="both", expand=True)
+        
+        self.img_tk = ImageTk.PhotoImage(img_current)
+        self.canvas.create_image(0, 0, anchor="nw", image=self.img_tk)
+
+        self.rect = None
+        self.start_x = None
+        self.start_y = None
+
+        self.canvas.bind("<ButtonPress-1>", self.on_button_press)
+        self.canvas.bind("<B1-Motion>", self.on_mouse_drag)
+        self.canvas.bind("<ButtonRelease-1>", self.on_button_release)
+
+        apply_button = tk.Button(self, text="Apply", command=self.apply_crop)
+        apply_button.pack(pady=10)
+
+    def on_button_press(self, event):
+        self.start_x = event.x
+        self.start_y = event.y
+        if self.rect:
+            self.canvas.delete(self.rect)
+        self.rect = self.canvas.create_rectangle(self.start_x, self.start_y, self.start_x, self.start_y, outline="red")
+
+    def on_mouse_drag(self, event):
+        cur_x, cur_y = (event.x, event.y)
+        self.canvas.coords(self.rect, self.start_x, self.start_y, cur_x, cur_y)
+
+    def on_button_release(self, event):
+        pass
+
+    def apply_crop(self):
+        global img_current, img_temp, label_temp
+        x0, y0, x1, y1 = self.canvas.coords(self.rect)
+        x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
+        if x0 > x1: x0, x1 = x1, x0
+        if y0 > y1: y0, y1 = y1, y0
+        img_temp = img_current.crop((x0, y0, x1, y1))
+        display_image(img_temp, label_temp)
 
 if __name__ == "__main__":
     app = tk.Tk()
@@ -533,7 +583,13 @@ if __name__ == "__main__":
     edit_menu.add_command(label="Resize", command=lambda: open_resize_window(app))
     edit_menu.add_command(label="Change transparency", command=lambda: open_tpc_window(app))
     edit_menu.add_command(label="Paste image", command=lambda: open_paste_window(app))
-    edit_menu.add_command(label="Crop image", command=lambda: open_crop_window(app))
+    # edit_menu.add_command(label="Crop image", command=lambda: open_crop_window(app))
+
+    crop_menu = Menu(edit_menu, tearoff=0)
+    edit_menu.add_cascade(label="Crop image", menu=crop_menu)
+    crop_menu.add_command(label="Crop with mouse", command=lambda: open_mouse_crop_window(app))
+    crop_menu.add_command(label="Crop with coordinate", command=lambda: open_crop_window(app))
+
     process_menu.add_command(label="Edit Color", command=lambda:open_color_window(app))
     process_menu.add_command(label="Contrast", command=lambda:open_contrast_window(app))
     process_menu.add_command(label="Invert Color", command=lambda:open_invert_window(app))

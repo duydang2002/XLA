@@ -1071,7 +1071,6 @@ class InvertColorWindow(tk.Toplevel):
             # Update image_temp and display
             img_temp = local_img_temp.convert('RGBA')
             display_image(local_img_temp, label_temp)
-            display_image(local_img_temp, label_temp1)
 
 class MouseCropWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):

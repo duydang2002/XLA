@@ -1,6 +1,0 @@
-Các thay đổi đều được thực hiện trên cell ban đầu của Duy và đã có comment đầy đủ (probably)
-
-Danh sách thay đổi đã thực hiện:
-- Thêm chức năng chuyển đổi âm dương bản (chỉ dùng được một lần và độc lập với các chức năng khác,
-tức là nó sẽ luôn trả về ảnh nghịch của ảnh ban đầu)
-- Thêm chức năng mở ảnh đã mở gần đây (mặc dù trông nó chuối v), để làm nền cho ghép ảnh maybe?

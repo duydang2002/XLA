@@ -1046,7 +1046,7 @@ class EditHistogramWindow(tk.Toplevel):
         shadow_value = int(value)
         self.apply_adjustments()
 
-
+# A window for inverting color
 class InvertColorWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
         super().__init__(parent)
@@ -1072,6 +1072,7 @@ class InvertColorWindow(tk.Toplevel):
             img_temp = local_img_temp.convert('RGBA')
             display_image(local_img_temp, label_temp)
 
+# A window that allows cropping by mouse
 class MouseCropWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
         global img_current, img_temp
@@ -1120,6 +1121,31 @@ class MouseCropWindow(tk.Toplevel):
         img_temp = img_current.crop((x0, y0, x1, y1))
         display_image(img_temp, label_temp)
 
+# A function to save the current image
+def save_image() -> None:
+    global img_current
+    if img_current.mode != "RGB":
+        img_current = img_current.convert("RGB")
+    if img_current is None:
+        messagebox.showerror("Error", "No image to save.")
+        return
+
+    filetypes = [
+        ("JPEG", "*.jpg;*.jpeg"),
+        ("PNG", "*.png"),
+        ("GIF", "*.gif"),
+        ("BMP", "*.bmp"),
+        ("TIFF", "*.tiff"),
+    ]
+    file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=filetypes)
+    if file_path:
+        try:
+            img_current.save(file_path)
+            messagebox.showinfo("Success", f"Image saved as {file_path}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save image: {e}")
+
+
 if __name__ == "__main__":
     app = tk.Tk()
 
@@ -1136,6 +1162,7 @@ if __name__ == "__main__":
     menu_bar.add_cascade(label="Edit", menu=edit_menu)
     menu_bar.add_cascade(label="Process", menu=process_menu)
     file_menu.add_command(label="Open", command=open_image)
+    file_menu.add_command(label="Save", command=save_image)
     file_menu.add_command(label="Exit", command=quit)
     edit_menu.add_command(label="Resize", command=lambda: open_resize_window(app))
     edit_menu.add_command(label="Change transparency", command=lambda: open_tpc_window(app))

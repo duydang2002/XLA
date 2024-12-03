@@ -193,6 +193,7 @@ class TransparencyWindow(tk.Toplevel):
         super().__init__(parent)
         self.parent = parent
         self.title("Change Image Transparency")
+        self.geometry("250x300")
 
         self.abs_alpha = tk.IntVar()
         self.rel_alpha = 1.00
@@ -480,18 +481,21 @@ class PasteImageWindow(tk.Toplevel):
         # Paste Button
         paste_button = tk.Button(self, text="Paste", command=self.paste_image_onto_canvas)
         paste_button.pack(pady=10, side="bottom")
+        # Text hint
+        hint_label = tk.Label(self, text="click on the right image to pick a coordinate")
+        hint_label.pack(pady=5, side="top")
         # X Coordinate Field
         x_label = tk.Label(self, text="X Coordinate")
-        x_label.pack(pady=5, side="left")
+        x_label.pack(pady=2, side="left")
         self.x_entry = tk.Entry(self)
         self.x_entry.insert(0, "0")
-        self.x_entry.pack(pady=5, side="left")
+        self.x_entry.pack(pady=2, side="left")
         # Y Coordinate Field
         y_label = tk.Label(self, text="Y Coordinate")
-        y_label.pack(pady=5, side="left")
+        y_label.pack(pady=2, side="left")
         self.y_entry = tk.Entry(self)
         self.y_entry.insert(0, "0")  # Default value
-        self.y_entry.pack(pady=5, side="left")
+        self.y_entry.pack(pady=2, side="left")
 
     def open_image(self):
         file_path = filedialog.askopenfilename(

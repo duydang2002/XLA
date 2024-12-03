@@ -12,7 +12,7 @@ current_r = 100
 current_g = 100
 current_b = 100
 
-current_contrast = 100
+current_brightness = 100
 
 exposure_value = 0
 contrast_value = 0
@@ -57,7 +57,11 @@ def apply_button_click() -> None:
 
 
 def restore_button_click() -> None:
-    global img_current, img_temp, label_temp, exposure_value, contrast_value, shadow_value, highlight_value
+    global img_current, img_temp, label_temp, exposure_value, contrast_value, shadow_value, highlight_value, current_g, current_b,current_r, current_brightness
+    current_g = 100
+    current_b = 100
+    current_r = 100
+    current_brightness = 100
     exposure_value = 0
     contrast_value = 0
     shadow_value = 0
@@ -103,8 +107,8 @@ def display_image(image: Image.Image | None, label: tk.Label) -> Image.Image | N
 
 def open_color_window(root):
     EditColorWindow(root)
-def open_contrast_window(root):
-    EditContrastWindow(root)
+def open_brightness_window(root):
+    EditBrightnessWindow(root)
 def open_histogram_window(root):
     EditHistogramWindow(root)
     
@@ -689,40 +693,41 @@ class EditColorWindow(tk.Toplevel):
         self.b_scale.set(100)
         self.update_color(100,100,100)
 
-class EditContrastWindow(tk.Toplevel):
+class EditBrightnessWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
         super().__init__(parent)
         self.parent = parent
-        self.title("Adjust Contrast Window")
+        self.title("Adjust Brightness Window")
         self.geometry("200x150")
         
-        #Variable to keep track of contrast value
-        self.contrast_value = tk.IntVar(value = current_contrast)
+        #Variable to keep track of brightness value
+        self.brightness_value = tk.IntVar(value = current_brightness)
         
-        # Contrast scale
-        self.contrast_scale = tk.Scale(self, from_=10, to = 200, orient="horizontal", label= "Contrast", variable= self.contrast_value)
-        self.contrast_scale.pack()
+        # brightness scale
+        self.brightness_scale = tk.Scale(self, from_=10, to = 200, orient="horizontal", label= "Brightness", variable= self.brightness_value)
+        self.brightness_scale.pack()
         
-        self.reset_button = tk.Button(self, text="Reset", command=self.reset_contrast)
+        self.reset_button = tk.Button(self, text="Reset", command=self.reset_brightness)
         self.reset_button.pack(pady=10)
         
         # Update color when scale values change
         def on_scale_change(event=None):
-            self.update_contrast(self.contrast_value.get())
+            self.update_brightness(self.brightness_value.get())
 
         # Bind scale changes to color update
-        self.contrast_scale.bind("<ButtonRelease-1>", on_scale_change)
+        self.brightness_scale.bind("<ButtonRelease-1>", on_scale_change)
         
-    def update_contrast(self, contrast_value):
-        global current_contrast,img_temp, img_current
+    def update_brightness(self, brightness_value):
+        global current_brightness,img_temp, img_current
         img_cv = np.array(img_current)
-        img_cv_abs = cv2.convertScaleAbs(img_cv, alpha= ( contrast_value/ 100), beta=0)
+        img_cv_abs = cv2.convertScaleAbs(img_cv, alpha= ( brightness_value/ 100), beta=0)
         img_temp = Image.fromarray(img_cv_abs)
-        current_contrast = contrast_value
+        current_brightness = brightness_value
         display_image(img_temp, label_temp)
-    def reset_contrast(self):
-        self.contrast_scale.set(100)
-        self.update_contrast(100)
+
+    def reset_brightness(self):
+        self.brightness_scale.set(100)
+        self.update_brightness(100)
 
 class EditHistogramWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
@@ -1179,7 +1184,7 @@ if __name__ == "__main__":
     crop_menu.add_command(label="Crop with coordinate", command=lambda: open_crop_window(app))
 
     process_menu.add_command(label="Edit Color", command=lambda:open_color_window(app))
-    process_menu.add_command(label="Contrast", command=lambda:open_contrast_window(app))
+    process_menu.add_command(label="Brightness", command=lambda:open_brightness_window(app))
     process_menu.add_command(label="Histogram", command=lambda:open_histogram_window(app))
     process_menu.add_command(label="Invert Color", command=lambda:open_invert_window(app))
     

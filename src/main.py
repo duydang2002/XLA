@@ -103,7 +103,7 @@ def display_image(image: Image.Image | None, label: tk.Label) -> Image.Image | N
     label.image = img_tk
     return image
 
-# Function to open the color adjustment 
+# Function to open the color adjustment
 
 def open_color_window(root):
     EditColorWindow(root)
@@ -111,7 +111,7 @@ def open_brightness_window(root):
     EditBrightnessWindow(root)
 def open_histogram_window(root):
     EditHistogramWindow(root)
-    
+
 class ResizeWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk) -> None:
         global img_current, img_temp
@@ -126,6 +126,7 @@ class ResizeWindow(tk.Toplevel):
         self.aspect_ratio = self.base_width / self.base_height
         self.width_var = tk.IntVar(value=self.base_width)
         self.height_var = tk.IntVar(value=self.base_height)
+        self.is_updating = False  # Flag to prevent circular updates
 
         # Labels
         tk.Label(self, text="Width:").pack(pady=5)
@@ -148,18 +149,24 @@ class ResizeWindow(tk.Toplevel):
         apply_button.pack(pady=10)
 
     def on_width_change(self, *args):
-        if self.aspect_ratio_var.get():
+        if self.aspect_ratio_var.get() and not self.is_updating:
             try:
+                self.is_updating = True
                 self.height_var.set(int(self.width_var.get() / self.aspect_ratio))
             except tk.TclError:
                 pass  # Ignore invalid input during typing
+            finally:
+                self.is_updating = False
 
     def on_height_change(self, *args):
-        if self.aspect_ratio_var.get():
+        if self.aspect_ratio_var.get() and not self.is_updating:
             try:
+                self.is_updating = True
                 self.width_var.set(int(self.height_var.get() * self.aspect_ratio))
             except tk.TclError:
                 pass  # Ignore invalid input during typing
+            finally:
+                self.is_updating = False
 
     def apply_resize(self):
         global img_current, img_temp, label_temp
@@ -291,7 +298,7 @@ class TransparencyWindow(tk.Toplevel):
 #         self.x_entry.insert(0, str(event.x))
 #         self.y_entry.insert(0, str(event.y))
 
-    
+
 #     def paste_image_onto_canvas(self):
 #         global img_current, img_temp, label_temp
 #         x = int(self.x_entry.get())
@@ -633,7 +640,7 @@ class EditColorWindow(tk.Toplevel):
         self.parent = parent
         self.title("Adjust Colors")
         self.geometry("200x250")
-        
+
         # Variables to track RGB values from scales
         self.r_value = tk.IntVar(value=current_r)
         self.g_value = tk.IntVar(value=current_g)
@@ -648,10 +655,10 @@ class EditColorWindow(tk.Toplevel):
         # Blue Scale
         self.b_scale = tk.Scale(self, from_=10, to=200, orient="horizontal", label="Blue", variable=self.b_value)
         self.b_scale.pack()
-        
+
         self.reset_button = tk.Button(self, text="Reset", command=self.reset_color )
         self.reset_button.pack(pady=10)
-        
+
         # Update color when scale values change
         def on_scale_change(event=None):
             self.update_color(self.r_value.get(), self.g_value.get(), self.b_value.get())
@@ -663,17 +670,17 @@ class EditColorWindow(tk.Toplevel):
 
     def update_color(self, r, g, b):
         global img_current, img_temp, current_r, current_g, current_b
-    
+
         if img_temp:
             # Cập nhật giá trị RGB hiện tại
-            
+
             # Điều chỉnh các kênh màu
             r_factor = r / 100
             g_factor = g / 100
             b_factor = b / 100
 
             # Tách hình ảnh thành các kênh màu R, G, B
-            
+
             r_img, g_img, b_img, a = img_current.split()
 
             # Áp dụng các thay đổi dựa trên giá trị RGB đã lưu
@@ -699,24 +706,24 @@ class EditBrightnessWindow(tk.Toplevel):
         self.parent = parent
         self.title("Adjust Brightness Window")
         self.geometry("200x150")
-        
+
         #Variable to keep track of brightness value
         self.brightness_value = tk.IntVar(value = current_brightness)
-        
+
         # brightness scale
         self.brightness_scale = tk.Scale(self, from_=10, to = 200, orient="horizontal", label= "Brightness", variable= self.brightness_value)
         self.brightness_scale.pack()
-        
+
         self.reset_button = tk.Button(self, text="Reset", command=self.reset_brightness)
         self.reset_button.pack(pady=10)
-        
+
         # Update color when scale values change
         def on_scale_change(event=None):
             self.update_brightness(self.brightness_value.get())
 
         # Bind scale changes to color update
         self.brightness_scale.bind("<ButtonRelease-1>", on_scale_change)
-        
+
     def update_brightness(self, brightness_value):
         global current_brightness,img_temp, img_current
         img_cv = np.array(img_current)
@@ -735,18 +742,18 @@ class EditHistogramWindow(tk.Toplevel):
         self.parent = parent
         self.title("Histogram")
         self.geometry("600x700")
-        
+
         # Images
-        global img_current, img_temp 
+        global img_current, img_temp
         self.baseline_image = self.convert_to_rgb(img_current)
         self.edited_image = self.convert_to_rgb(img_temp)
-        
+
         # Sliders' initial values
         self.exposure_value = 0
         self.contrast_value = 0
         self.shadow_value = 0
         self.highlight_value = 0
-        
+
         # Create the histogram window layout
         self.create_histogram_window()
 
@@ -871,7 +878,7 @@ class EditHistogramWindow(tk.Toplevel):
 
         if self.baseline_image.mode == 'RGB' and not self.is_gray_scale(self.baseline_image):
             # Handle RGB images
-            for channel in range(3): 
+            for channel in range(3):
                 channel_data = img_array[:, :, channel]
                 channel_data[mask[:, :, channel]] += highlight_value/4
                 img_array[:, :, channel] = np.clip(channel_data, 0, 255)
@@ -887,7 +894,7 @@ class EditHistogramWindow(tk.Toplevel):
                         stretched_values = ((adjusted_values - mask_min_value) / (mask_max_value - mask_min_value)) * (255 - lower_bound) + lower_bound
                         channel_data[mask[:, :, channel]] = np.clip(stretched_values, 0, 255)
                     elif highlight_value < 0:
-                        compressed_values = ((img_array[:, :, channel] - min_value) / (max_value - min_value)) * 255  
+                        compressed_values = ((img_array[:, :, channel] - min_value) / (max_value - min_value)) * 255
                         channel_data = np.clip(compressed_values, 0, 255)
                 img_array[:, :, channel] = np.clip(channel_data, 0, 255)
         else:
@@ -914,7 +921,7 @@ class EditHistogramWindow(tk.Toplevel):
         img_array = np.clip(img_array, 0, 255).astype(np.uint8)
 
         return img_array
-    
+
     def adjust_shadows(self, img_array, shadow_value):
         img_array = img_array.astype(np.float64)
 
@@ -1004,12 +1011,12 @@ class EditHistogramWindow(tk.Toplevel):
             contrast_scale = 1 + (contrast_value / 170.0)
             img_array = (img_array - mean) * contrast_scale + mean
 
-        # highlights 
+        # highlights
         img_array = self.adjust_highlights(img_array, highlight_value)
 
         # shadows
         img_array = self.adjust_shadows(img_array, shadow_value)
-        
+
         # Clip and convert to uint8
         img_array = np.clip(img_array, 0, 255).astype(np.uint8)
 
@@ -1092,7 +1099,7 @@ class MouseCropWindow(tk.Toplevel):
 
         self.canvas = tk.Canvas(self, cursor="cross")
         self.canvas.pack(fill="both", expand=True)
-        
+
         self.img_tk = ImageTk.PhotoImage(img_current)
         self.canvas.create_image(0, 0, anchor="nw", image=self.img_tk)
 
@@ -1187,7 +1194,7 @@ if __name__ == "__main__":
     process_menu.add_command(label="Brightness", command=lambda:open_brightness_window(app))
     process_menu.add_command(label="Histogram", command=lambda:open_histogram_window(app))
     process_menu.add_command(label="Invert Color", command=lambda:open_invert_window(app))
-    
+
     # Label to display label_current coordinates
     coords_label = tk.Label(app, text="Left click to see coordinates", font=("Helvetica", 14))
     coords_label.pack(side="top", padx=0, pady=0)

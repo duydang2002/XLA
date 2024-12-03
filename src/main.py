@@ -57,7 +57,11 @@ def apply_button_click() -> None:
 
 
 def restore_button_click() -> None:
-    global img_current, img_temp, label_temp
+    global img_current, img_temp, label_temp, exposure_value, contrast_value, shadow_value, highlight_value
+    exposure_value = 0
+    contrast_value = 0
+    shadow_value = 0
+    highlight_value = 0
     img_temp = img_current.copy()
     display_image(img_temp, label_temp)
 

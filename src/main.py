@@ -91,6 +91,9 @@ def open_invert_window(root):
 def open_mouse_crop_window(root):
     MouseCropWindow(root)
 
+def open_add_subtract_window(root):
+    AddSubtractImageWindow(root)
+
 
 def display_image(image: Image.Image | None, label: tk.Label) -> Image.Image | None:
     if image is None:
@@ -1154,6 +1157,70 @@ def save_image() -> None:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save image: {e}")
 
+class AddSubtractImageWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        global img_current
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Add/Subtract Image")
+        self.geometry("800x800")
+        self.attributes('-topmost', True)
+        self.overlay_img: Image.Image | None = None
+
+        # Open Image Button
+        open_button = tk.Button(self, text="Open Image", command=self.open_image)
+        open_button.pack(pady=10)
+
+        # Canvas for preview
+        self.preview_canvas = tk.Canvas(self, width=600, height=600, bg="white")
+        self.preview_canvas.pack(pady=10)
+
+        # Add and Subtract Buttons
+        add_button = tk.Button(self, text="Add Image", command=self.add_image)
+        add_button.pack(pady=5)
+        subtract_button = tk.Button(self, text="Subtract Image", command=self.subtract_image)
+        subtract_button.pack(pady=5)
+
+    def open_image(self):
+        file_path = filedialog.askopenfilename(
+            title="Select Image",
+            filetypes=[("Image files", "*.jpg;*.jpeg;*.png;*.gif")]
+        )
+        if file_path:
+            try:
+                self.overlay_img = Image.open(file_path).convert("RGBA")
+                self.overlay_img = self.overlay_img.resize(img_current.size, Image.Resampling.LANCZOS)
+                self.show_preview()
+            except Exception as e:
+                print(f"Error opening image: {e}")
+
+    def show_preview(self):
+        if self.overlay_img:
+            self.preview_canvas.delete("all")
+            img_tk = ImageTk.PhotoImage(self.overlay_img)
+            self.preview_canvas.create_image(300, 300, anchor="center", image=img_tk)
+            self.preview_canvas.image = img_tk
+
+    def add_image(self):
+        global img_temp, label_temp
+        if self.overlay_img:
+            img_np = np.array(img_temp.convert("RGBA"))
+            overlay_np = np.array(self.overlay_img)
+            result_np = cv2.add(img_np, overlay_np)
+            img_temp = Image.fromarray(result_np)
+            display_image(img_temp, label_temp)
+
+    def subtract_image(self):
+        global img_temp, label_temp
+        if self.overlay_img:
+            img_np = np.array(img_temp.convert("RGBA"))
+            overlay_np = np.array(self.overlay_img)
+            result_np = cv2.subtract(img_np, overlay_np)
+            img_temp = Image.fromarray(result_np)
+            display_image(img_temp, label_temp)
+
+            
+
 
 if __name__ == "__main__":
     app = tk.Tk()
@@ -1187,6 +1254,7 @@ if __name__ == "__main__":
     process_menu.add_command(label="Brightness", command=lambda:open_brightness_window(app))
     process_menu.add_command(label="Histogram", command=lambda:open_histogram_window(app))
     process_menu.add_command(label="Invert Color", command=lambda:open_invert_window(app))
+    process_menu.add_command(label="Add/Subtract Image", command=lambda:open_add_subtract_window(app))
     
     # Label to display label_current coordinates
     coords_label = tk.Label(app, text="Left click to see coordinates", font=("Helvetica", 14))

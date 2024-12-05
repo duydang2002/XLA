@@ -1145,7 +1145,7 @@ def save_image() -> None:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save image: {e}")
 
-
+# this comment is just for git testing purpose 
 if __name__ == "__main__":
     app = tk.Tk()
 

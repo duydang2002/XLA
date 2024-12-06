@@ -901,7 +901,8 @@ class EditHistogramWindow(tk.Toplevel):
                         stretched_values = ((adjusted_values - mask_min_value) / (mask_max_value - mask_min_value)) * (255 - lower_bound) + lower_bound
                         channel_data[mask[:, :, channel]] = np.clip(stretched_values, 0, 255)
                     elif highlight_value < 0:
-                        compressed_values = ((img_array[:, :, channel] - min_value) / (max_value - min_value)) * 255
+                        # compressed_values = ((img_array[:, :, channel] - min_value) / (max_value - min_value)) * 255  
+                        compressed_values = img_array[:, :, channel] 
                         channel_data = np.clip(compressed_values, 0, 255)
                 img_array[:, :, channel] = np.clip(channel_data, 0, 255)
         else:
@@ -923,6 +924,7 @@ class EditHistogramWindow(tk.Toplevel):
                     img_array[mask] = np.clip(stretched_values, 0, 255)
                 elif highlight_value < 0:
                     compressed_values = ((img_array - min_value) / (max_value - min_value)) * 255
+                    # compressed_values = img_array   
                     img_array = np.clip(compressed_values, 0, 255)
 
         img_array = np.clip(img_array, 0, 255).astype(np.uint8)
@@ -999,6 +1001,9 @@ class EditHistogramWindow(tk.Toplevel):
         # exposure
         img_array += exposure_value
 
+        max_value = max(255, np.max(img_array))
+        min_value = min(0, np.min(img_array))
+
         # contranst
         if self.baseline_image.mode == 'RGB' and not self.is_gray_scale(self.baseline_image):
             # For RGB images
@@ -1016,7 +1021,8 @@ class EditHistogramWindow(tk.Toplevel):
             # For grayscale images
             mean = np.mean(img_array)
             contrast_scale = 1 + (contrast_value / 170.0)
-            img_array = (img_array - mean) * contrast_scale + mean
+            # img_array = (img_array - mean) * contrast_scale + mean
+            img_array = ((img_array - min_value) / (max_value - min_value) * (contrast_scale * 255))
 
         # highlights
         img_array = self.adjust_highlights(img_array, highlight_value)
@@ -1048,6 +1054,7 @@ class EditHistogramWindow(tk.Toplevel):
             equalized_img = cv2.equalizeHist(grayscale_img)
             self.edited_image = Image.fromarray(cv2.cvtColor(equalized_img, cv2.COLOR_GRAY2RGB))
         self.update_histogram()
+        display_image(self.edited_image, label_temp)
 
     def on_exposure_slider_change(self, value):
         global exposure_value

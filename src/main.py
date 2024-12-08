@@ -472,9 +472,12 @@ class PasteImageWindow(tk.Toplevel):
         self.title("Paste Image")
         self.attributes("-topmost", True)
 
-        # Open Image Button
+        # Open Image Button and Text
         open_button = tk.Button(self, text="Open Image", command=self.open_image)
         open_button.pack(pady=2, side="top")
+        self.path_str = tk.StringVar()
+        path_label = tk.Label(self, textvariable=self.path_str, font=("Arial", 9))
+        path_label.pack(pady=2, padx=5, side="top", expand=True)
         # Crop Button
         crop_button = tk.Button(self, text="Crop", command=self.open_crop_window)
         crop_button.pack(pady=2, side="top")
@@ -501,14 +504,15 @@ class PasteImageWindow(tk.Toplevel):
         self.y_entry.pack(pady=2, side="left")
 
     def open_image(self):
-        file_path = filedialog.askopenfilename(
+        file_path: str = filedialog.askopenfilename(
             title="Select Image to Paste",
             filetypes=([("Image files", "*.jpg;*.jpeg;*.png;*.gif")])
         )
         if file_path:
             try:
                 self.overlay_img = Image.open(file_path).convert("RGBA")
-                messagebox.showinfo("Success", "Image loaded successfully.")
+                # write to UI what image is opened
+                self.path_str.set("Loaded image " + file_path[(file_path.rfind('/')+1):])
             except Exception as e:
                 print(f"Error opening image: {e}")
 
@@ -876,7 +880,7 @@ class EditHistogramWindow(tk.Toplevel):
         mean_intensity = np.mean(img_array)
         mean_intensity = int(mean_intensity)
         brightest_peak = np.argmax(hist[mean_intensity:]) + mean_intensity
-        print('brightest_peak', brightest_peak) 
+        print('brightest_peak', brightest_peak)
 
         highlight_range = 20
         lower_bound = max(0, brightest_peak - highlight_range)
@@ -904,8 +908,8 @@ class EditHistogramWindow(tk.Toplevel):
                         stretched_values = ((adjusted_values - mask_min_value) / (mask_max_value - mask_min_value)) * (255 - lower_bound) + lower_bound
                         channel_data[mask[:, :, channel]] = np.clip(stretched_values, 0, 255)
                     elif highlight_value < 0:
-                        # compressed_values = ((img_array[:, :, channel] - min_value) / (max_value - min_value)) * 255  
-                        compressed_values = img_array[:, :, channel] 
+                        # compressed_values = ((img_array[:, :, channel] - min_value) / (max_value - min_value)) * 255
+                        compressed_values = img_array[:, :, channel]
                         channel_data = np.clip(compressed_values, 0, 255)
                 img_array[:, :, channel] = np.clip(channel_data, 0, 255)
         else:
@@ -927,7 +931,7 @@ class EditHistogramWindow(tk.Toplevel):
                     img_array[mask] = np.clip(stretched_values, 0, 255)
                 elif highlight_value < 0:
                     # compressed_values = ((img_array - min_value) / (max_value - min_value)) * 255
-                    compressed_values = img_array   
+                    compressed_values = img_array
                     img_array = np.clip(compressed_values, 0, 255)
 
         img_array = np.clip(img_array, 0, 255).astype(np.uint8)
@@ -1244,7 +1248,7 @@ class AddSubtractImageWindow(tk.Toplevel):
             img_temp = Image.fromarray(result_np)
             display_image(img_temp, label_temp)
 
-            
+
 
 
 if __name__ == "__main__":

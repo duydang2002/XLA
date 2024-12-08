@@ -3,6 +3,7 @@ from tkinter import Menu, filedialog, messagebox
 from PIL import Image, ImageTk
 import numpy as np
 import cv2
+
 img_current: Image.Image | None = None
 img_temp: Image.Image | None = None
 coord_x: int = 0
@@ -18,6 +19,7 @@ exposure_value = 0
 contrast_value = 0
 shadow_value = 0
 highlight_value = 0
+
 
 def open_image() -> None:
     global img_current, img_temp, label_current, label_temp, exposure_value, contrast_value, shadow_value, highlight_value, shadow_value
@@ -57,7 +59,7 @@ def apply_button_click() -> None:
 
 
 def restore_button_click() -> None:
-    global img_current, img_temp, label_temp, exposure_value, contrast_value, shadow_value, highlight_value, current_g, current_b,current_r, current_brightness
+    global img_current, img_temp, label_temp, exposure_value, contrast_value, shadow_value, highlight_value, current_g, current_b, current_r, current_brightness
     current_g = 100
     current_b = 100
     current_r = 100
@@ -85,11 +87,14 @@ def open_paste_window(root):
 def open_crop_window(root):
     CropImageWindow(root)
 
+
 def open_invert_window(root):
     InvertColorWindow(root)
 
+
 def open_mouse_crop_window(root):
     MouseCropWindow(root)
+
 
 def open_add_subtract_window(root):
     AddSubtractImageWindow(root)
@@ -106,14 +111,20 @@ def display_image(image: Image.Image | None, label: tk.Label) -> Image.Image | N
     label.image = img_tk
     return image
 
+
 # Function to open the color adjustment
 
 def open_color_window(root):
     EditColorWindow(root)
+
+
 def open_brightness_window(root):
     EditBrightnessWindow(root)
+
+
 def open_histogram_window(root):
     EditHistogramWindow(root)
+
 
 class ResizeWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk) -> None:
@@ -252,72 +263,6 @@ class TransparencyWindow(tk.Toplevel):
             display_image(img_temp, label_temp)
 
 
-# class PasteImageWindow(tk.Toplevel):
-#     def __init__(self, parent: tk.Tk):
-#         global label_temp
-#         label_temp.bind("<Button-1>", lambda event: self.load_coords(event))
-
-#         super().__init__(parent)
-#         self.parent = parent
-#         self.geometry("400x150")
-#         self.overlay_img: Image.Image | None = None
-#         self.title("Paste Image")
-#         self.attributes("-topmost", True)
-
-#         # Open Image Button
-#         open_button = tk.Button(self, text="Open Image", command=self.open_image)
-#         open_button.pack(pady=2, side="top")
-#         # Paste Button
-#         paste_button = tk.Button(self, text="Paste", command=self.paste_image_onto_canvas)
-#         paste_button.pack(pady=10, side="bottom")
-#         # X Coordinate Field
-#         x_label = tk.Label(self, text="X Coordinate")
-#         x_label.pack(pady=5, side="left")
-#         self.x_entry = tk.Entry(self)
-#         self.x_entry.insert(0, "0")
-#         self.x_entry.pack(pady=5, side="left")
-#         # Y Coordinate Field
-#         y_label = tk.Label(self, text="Y Coordinate")
-#         y_label.pack(pady=5, side="left")
-#         self.y_entry = tk.Entry(self)
-#         self.y_entry.insert(0, "0")  # Default value
-#         self.y_entry.pack(pady=5, side="left")
-
-#     def open_image(self):
-#         file_path = filedialog.askopenfilename(
-#             title="Select Image to Paste",
-#             filetypes=([("Image files", "*.jpg;*.jpeg;*.png;*.gif")])
-#         )
-#         if file_path:
-#             try:
-#                 self.overlay_img = Image.open(file_path).convert("RGBA")
-#                 messagebox.showinfo("Success", "Image loaded successfully.")
-#             except Exception as e:
-#                 print(f"Error opening image: {e}")
-
-#     def load_coords(self, event: tk.Event):
-#         global coord_x, coord_y
-#         self.x_entry.delete(0, tk.END)
-#         self.y_entry.delete(0, tk.END)
-#         self.x_entry.insert(0, str(event.x))
-#         self.y_entry.insert(0, str(event.y))
-
-
-#     def paste_image_onto_canvas(self):
-#         global img_current, img_temp, label_temp
-#         x = int(self.x_entry.get())
-#         y = int(self.y_entry.get())
-#         if (self.overlay_img is None) \
-#                 or (x < 0 or y < 0) \
-#                 or ((x, y) > img_current.size):
-#             return
-#         # alpha mask of 255, overwrites all pixels
-#         mask = Image.new("L", self.overlay_img.size, 255)
-#         img_temp = img_current.copy()
-#         img_temp.paste(self.overlay_img, (x, y), mask)
-#         display_image(img_temp, label_temp)
-
-# A class to crop the image with mouse
 class MouseCropOverlayWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk, overlay_img: Image.Image, callback):
         super().__init__(parent)
@@ -331,7 +276,7 @@ class MouseCropOverlayWindow(tk.Toplevel):
         self.canvas = tk.Canvas(self, cursor="cross")
         self.canvas.pack(fill="both", expand=True)
 
-        self.img_tk = ImageTk.PhotoImage(self.overlay_img,)
+        self.img_tk = ImageTk.PhotoImage(self.overlay_img, )
         self.canvas.create_image(0, 0, anchor="nw", image=self.img_tk)
 
         self.rect = None
@@ -367,6 +312,7 @@ class MouseCropOverlayWindow(tk.Toplevel):
         cropped_overlay_image = self.overlay_img.crop((x0, y0, x1, y1))
         self.callback(cropped_overlay_image)
         self.destroy()
+
 
 class ResizeOverlayWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk, overlay_img: Image.Image, callback):
@@ -444,7 +390,7 @@ class ResizeOverlayWindow(tk.Toplevel):
             new_height = self.new_height_var.get()
             resized_img = self.overlay_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
             self.img_tk = ImageTk.PhotoImage(resized_img)
-            self.preview_canvas.create_image(500 ,300, anchor="center", image=self.img_tk)
+            self.preview_canvas.create_image(500, 300, anchor="center", image=self.img_tk)
         except tk.TclError:
             pass  # Ignore invalid input during typing
 
@@ -459,6 +405,7 @@ class ResizeOverlayWindow(tk.Toplevel):
             self.destroy()
         except ValueError as e:
             messagebox.showerror("Error", f"Invalid input: {e}")
+
 
 class PasteImageWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
@@ -512,7 +459,7 @@ class PasteImageWindow(tk.Toplevel):
             try:
                 self.overlay_img = Image.open(file_path).convert("RGBA")
                 # write to UI what image is opened
-                self.path_str.set("Loaded image " + file_path[(file_path.rfind('/')+1):])
+                self.path_str.set("Loaded image " + file_path[(file_path.rfind('/') + 1):])
             except Exception as e:
                 print(f"Error opening image: {e}")
 
@@ -547,6 +494,7 @@ class PasteImageWindow(tk.Toplevel):
         img_temp = img_current.copy()
         img_temp.paste(self.overlay_img, (x, y), mask)
         display_image(img_temp, label_temp)
+
 
 class CropImageWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
@@ -645,6 +593,7 @@ class CropImageWindow(tk.Toplevel):
         except ValueError as e:
             messagebox.showerror("Error", f"Invalid input: {e}")
 
+
 class EditColorWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
         super().__init__(parent)
@@ -667,7 +616,7 @@ class EditColorWindow(tk.Toplevel):
         self.b_scale = tk.Scale(self, from_=10, to=200, orient="horizontal", label="Blue", variable=self.b_value)
         self.b_scale.pack()
 
-        self.reset_button = tk.Button(self, text="Reset", command=self.reset_color )
+        self.reset_button = tk.Button(self, text="Reset", command=self.reset_color)
         self.reset_button.pack(pady=10)
 
         # Update color when scale values change
@@ -700,16 +649,18 @@ class EditColorWindow(tk.Toplevel):
             b_img = b_img.point(lambda i: i * b_factor)
 
             # Gộp các kênh màu và hiển thị
-            img_temp = Image.merge("RGBA", (r_img, g_img, b_img,a))
+            img_temp = Image.merge("RGBA", (r_img, g_img, b_img, a))
             current_r = r
             current_g = g
             current_b = b
             display_image(img_temp, label_temp)
+
     def reset_color(self):
         self.r_scale.set(100)
         self.g_scale.set(100)
         self.b_scale.set(100)
-        self.update_color(100,100,100)
+        self.update_color(100, 100, 100)
+
 
 class EditBrightnessWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
@@ -718,11 +669,11 @@ class EditBrightnessWindow(tk.Toplevel):
         self.title("Adjust Brightness Window")
         self.geometry("200x150")
 
-        #Variable to keep track of brightness value
-        self.brightness_value = tk.IntVar(value = current_brightness)
+        # Variable to keep track of brightness value
+        self.brightness_value = tk.IntVar(value=current_brightness)
 
         # brightness scale
-        self.brightness_scale = tk.Scale(self, from_=10, to = 200, orient="horizontal", label= "Brightness", variable= self.brightness_value)
+        self.brightness_scale = tk.Scale(self, from_=10, to=200, orient="horizontal", label="Brightness", variable=self.brightness_value)
         self.brightness_scale.pack()
 
         self.reset_button = tk.Button(self, text="Reset", command=self.reset_brightness)
@@ -736,9 +687,9 @@ class EditBrightnessWindow(tk.Toplevel):
         self.brightness_scale.bind("<ButtonRelease-1>", on_scale_change)
 
     def update_brightness(self, brightness_value):
-        global current_brightness,img_temp, img_current
+        global current_brightness, img_temp, img_current
         img_cv = np.array(img_current)
-        img_cv_abs = cv2.convertScaleAbs(img_cv, alpha= ( brightness_value/ 100), beta=0)
+        img_cv_abs = cv2.convertScaleAbs(img_cv, alpha=(brightness_value / 100), beta=0)
         img_temp = Image.fromarray(img_cv_abs)
         current_brightness = brightness_value
         display_image(img_temp, label_temp)
@@ -746,6 +697,7 @@ class EditBrightnessWindow(tk.Toplevel):
     def reset_brightness(self):
         self.brightness_scale.set(100)
         self.update_brightness(100)
+
 
 class EditHistogramWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
@@ -894,18 +846,19 @@ class EditHistogramWindow(tk.Toplevel):
             # Handle RGB images
             for channel in range(3):
                 channel_data = img_array[:, :, channel]
-                channel_data[mask[:, :, channel]] += highlight_value/4
+                channel_data[mask[:, :, channel]] += highlight_value / 4
                 img_array[:, :, channel] = np.clip(channel_data, 0, 255)
 
                 adjusted_values = channel_data[mask[:, :, channel]]
                 mask_min_value, mask_max_value = None, None
 
                 if adjusted_values.size > 0:
-                    mask_min_value = min(254,adjusted_values.min())
+                    mask_min_value = min(254, adjusted_values.min())
                     mask_max_value = adjusted_values.max()
                 if mask_min_value is not None or mask_max_value is not None:
                     if highlight_value > 0:
-                        stretched_values = ((adjusted_values - mask_min_value) / (mask_max_value - mask_min_value)) * (255 - lower_bound) + lower_bound
+                        stretched_values = ((adjusted_values - mask_min_value) / (mask_max_value - mask_min_value)) * (
+                                    255 - lower_bound) + lower_bound
                         channel_data[mask[:, :, channel]] = np.clip(stretched_values, 0, 255)
                     elif highlight_value < 0:
                         # compressed_values = ((img_array[:, :, channel] - min_value) / (max_value - min_value)) * 255
@@ -922,7 +875,7 @@ class EditHistogramWindow(tk.Toplevel):
             mask_min_value, mask_max_value = None, None
 
             if adjusted_values.size > 0:
-                mask_min_value = min(254,adjusted_values.min())
+                mask_min_value = min(254, adjusted_values.min())
                 mask_max_value = adjusted_values.max()
 
             if mask_min_value is not None or mask_max_value is not None:
@@ -966,7 +919,7 @@ class EditHistogramWindow(tk.Toplevel):
                 mask_min_value, mask_max_value = None, None
 
                 if adjusted_values.size > 0:
-                    mask_min_value = min(254,adjusted_values.min())
+                    mask_min_value = min(254, adjusted_values.min())
                     mask_max_value = adjusted_values.max()
 
                 if mask_min_value is not None or mask_max_value is not None:
@@ -988,7 +941,7 @@ class EditHistogramWindow(tk.Toplevel):
             mask_min_value, mask_max_value = None, None
 
             if adjusted_values.size > 0:
-                mask_min_value = min(254,adjusted_values.min())
+                mask_min_value = min(254, adjusted_values.min())
                 mask_max_value = adjusted_values.max()
 
             if mask_min_value is not None or mask_max_value is not None:
@@ -1003,7 +956,6 @@ class EditHistogramWindow(tk.Toplevel):
             img_array = np.clip(img_array, 0, 255).astype(np.uint8)
 
         return img_array
-
 
     def apply_adjustments(self):
         global exposure_value, contrast_value, shadow_value, highlight_value
@@ -1087,6 +1039,7 @@ class EditHistogramWindow(tk.Toplevel):
         shadow_value = int(value)
         self.apply_adjustments()
 
+
 # A window for inverting color
 class InvertColorWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
@@ -1112,6 +1065,7 @@ class InvertColorWindow(tk.Toplevel):
             # Update image_temp and display
             img_temp = local_img_temp.convert('RGBA')
             display_image(local_img_temp, label_temp)
+
 
 # A window that allows cropping by mouse
 class MouseCropWindow(tk.Toplevel):
@@ -1162,6 +1116,7 @@ class MouseCropWindow(tk.Toplevel):
         img_temp = img_current.crop((x0, y0, x1, y1))
         display_image(img_temp, label_temp)
 
+
 # A function to save the current image
 def save_image() -> None:
     global img_current
@@ -1185,6 +1140,7 @@ def save_image() -> None:
             messagebox.showinfo("Success", f"Image saved as {file_path}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save image: {e}")
+
 
 class AddSubtractImageWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
@@ -1249,8 +1205,6 @@ class AddSubtractImageWindow(tk.Toplevel):
             display_image(img_temp, label_temp)
 
 
-
-
 if __name__ == "__main__":
     app = tk.Tk()
 
@@ -1262,7 +1216,7 @@ if __name__ == "__main__":
 
     file_menu = Menu(menu_bar, tearoff=0)
     edit_menu = Menu(menu_bar, tearoff=0)
-    process_menu = Menu(menu_bar,tearoff=0)
+    process_menu = Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label="File", menu=file_menu)
     menu_bar.add_cascade(label="Edit", menu=edit_menu)
     menu_bar.add_cascade(label="Process", menu=process_menu)
@@ -1279,11 +1233,11 @@ if __name__ == "__main__":
     crop_menu.add_command(label="Crop with mouse", command=lambda: open_mouse_crop_window(app))
     crop_menu.add_command(label="Crop with coordinate", command=lambda: open_crop_window(app))
 
-    process_menu.add_command(label="Edit Color", command=lambda:open_color_window(app))
-    process_menu.add_command(label="Brightness", command=lambda:open_brightness_window(app))
-    process_menu.add_command(label="Histogram", command=lambda:open_histogram_window(app))
-    process_menu.add_command(label="Invert Color", command=lambda:open_invert_window(app))
-    process_menu.add_command(label="Add/Subtract Image", command=lambda:open_add_subtract_window(app))
+    process_menu.add_command(label="Edit Color", command=lambda: open_color_window(app))
+    process_menu.add_command(label="Brightness", command=lambda: open_brightness_window(app))
+    process_menu.add_command(label="Histogram", command=lambda: open_histogram_window(app))
+    process_menu.add_command(label="Invert Color", command=lambda: open_invert_window(app))
+    process_menu.add_command(label="Add/Subtract Image", command=lambda: open_add_subtract_window(app))
 
     # Label to display label_current coordinates
     coords_label = tk.Label(app, text="Left click to see coordinates", font=("Helvetica", 14))

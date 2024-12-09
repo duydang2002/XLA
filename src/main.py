@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import Menu, filedialog, messagebox
+from typing import Dict
+
 from PIL import Image, ImageTk
 import numpy as np
 import cv2
@@ -131,10 +133,8 @@ class ResizeWindow(tk.Toplevel):
         global img_current, img_temp
         super().__init__(parent)
         self.parent = parent
-
         self.title("Resize Image")
-        self.geometry("300x200")
-
+        self.geometry("500x200")
         # Initial dimensions
         self.base_width, self.base_height = img_current.size
         self.aspect_ratio = self.base_width / self.base_height
@@ -142,25 +142,45 @@ class ResizeWindow(tk.Toplevel):
         self.height_var = tk.IntVar(value=self.base_height)
         self.is_updating = False  # Flag to prevent circular updates
 
-        # Labels
-        tk.Label(self, text="Width:").pack(pady=5)
-        self.width_entry = tk.Entry(self, textvariable=self.width_var)
-        self.width_entry.pack(pady=5)
+        # Width/Height entries
+        width_frame = tk.Frame(self)
+        width_frame.pack(side="top", pady=5)
+        tk.Label(width_frame, text="Width:").pack(side="left")
+        self.width_entry = tk.Entry(width_frame, textvariable=self.width_var)
+        self.width_entry.pack(side="left")
         self.width_var.trace_add("write", self.on_width_change)
 
-        tk.Label(self, text="Height:").pack(pady=5)
-        self.height_entry = tk.Entry(self, textvariable=self.height_var)
-        self.height_entry.pack(pady=5)
+        height_frame = tk.Frame(self)
+        height_frame.pack(side="top", pady=2)
+        tk.Label(height_frame, text="Height:").pack(side="left")
+        self.height_entry = tk.Entry(height_frame, textvariable=self.height_var)
+        self.height_entry.pack(side="left")
         self.height_var.trace_add("write", self.on_height_change)
-
         # Aspect ratio checkbox
         self.aspect_ratio_var = tk.BooleanVar()
         self.aspect_ratio_checkbox = tk.Checkbutton(self, text="Maintain aspect ratio", variable=self.aspect_ratio_var)
         self.aspect_ratio_checkbox.pack(pady=5)
-
+        img_temp.resize((10, 10), Image.Resampling.BOX)
+        # Resampling dropdown options
+        resamp_frame = tk.Frame(self)
+        resamp_frame.pack(side="top", pady=5)
+        tk.Label(resamp_frame, text="Choose a resampling option:").pack( side="left")
+        self.resampling_option: Image.Resampling = Image.Resampling.BICUBIC
+        self.resampling_dict: Dict[str, Image.Resampling] = {
+            'nearest-neighbor interpolation': Image.Resampling.NEAREST,
+            'box sampling': Image.Resampling.BOX,
+            'bilinear interpolation': Image.Resampling.BILINEAR,
+            'hamming interpolation': Image.Resampling.HAMMING,
+            'bicubic interpolation': Image.Resampling.BICUBIC,
+            'lanczos interpolation': Image.Resampling.LANCZOS,
+        }
+        selected_string = tk.StringVar()
+        selected_string.set("--")
+        dropdown = tk.OptionMenu(resamp_frame, selected_string, *list(self.resampling_dict.keys()), command=self.change_resampling)
+        dropdown.pack(side="left")
         # Apply button
         apply_button = tk.Button(self, text="Apply", command=self.apply_resize)
-        apply_button.pack(pady=10)
+        apply_button.pack(pady=10, padx=10, side="bottom", anchor="se")
 
     def on_width_change(self, *args):
         if self.aspect_ratio_var.get() and not self.is_updating:
@@ -194,11 +214,15 @@ class ResizeWindow(tk.Toplevel):
                 raise ValueError("Dimensions too large.")
 
             # Update preview image
-            img_temp = img_current.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            img_temp = img_current.resize((new_width, new_height), self.resampling_option)
             display_image(img_temp, label_temp)
 
         except ValueError as e:
             print(f"Error in resize window: {e}")
+
+    def change_resampling(self, resamp_txt):
+        self.resampling_option = self.resampling_dict[resamp_txt]
+        print("option selected: " + resamp_txt + ", resampling: " + str(self.resampling_option))
 
 
 class TransparencyWindow(tk.Toplevel):

@@ -1,7 +1,6 @@
 import tkinter as tk
-from tkinter import Menu, filedialog, messagebox
+from tkinter import Menu, filedialog, messagebox, ttk
 from typing import Dict
-
 from PIL import Image, ImageTk
 import numpy as np
 import cv2
@@ -14,7 +13,7 @@ coord_y: int = 0
 current_r = 100
 current_g = 100
 current_b = 100
-
+current_color_format = "RGB" 
 current_brightness = 100
 
 exposure_value = 0
@@ -118,8 +117,8 @@ def display_image(image: Image.Image | None, label: tk.Label) -> Image.Image | N
 
 def open_color_window(root):
     EditColorWindow(root)
-
-
+def open_color_window_hsv(root):
+    EditHSVColorWindow(root)
 def open_brightness_window(root):
     EditBrightnessWindow(root)
 
@@ -686,6 +685,91 @@ class EditColorWindow(tk.Toplevel):
         self.update_color(100, 100, 100)
 
 
+class EditHSVColorWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Adjust Colors HSV")
+        self.geometry("900x700")
+        colors = [
+        ("Red", 0, 15),
+        ("Orange", 15, 22.5),
+        ("Yellow", 22.5, 45),
+        ("Green", 45, 75),
+        ("Cyan", 75, 112.5),
+        ("Blue", 112.5, 135),
+        ("Violet", 135, 142.5),
+        ("Magenta", 142.5, 172.5)
+        ]
+        self.color_combobox = ttk.Combobox(self, values=[color[0] for color in colors])
+        self.color_combobox.set("Red")
+        self.color_combobox.pack(pady=10)
+
+        self.slider_frame = tk.Frame(self)
+        self.slider_frame.pack()
+        # Lưu các slider
+        self.sliders = {}
+        for color, low, high in colors:
+            self.hue_slider = tk.Scale(self.slider_frame, from_=-30, to=30, orient=tk.HORIZONTAL, length=300)
+            self.sat_slider = tk.Scale(self.slider_frame, from_=0.0, to=3.0, orient=tk.HORIZONTAL, length=300)
+            self.sat_slider.set(1.0)
+            self.light_slider = tk.Scale(self.slider_frame, from_=0.0, to=3.0, orient=tk.HORIZONTAL, length=300)
+            self.light_slider.set(1.0)
+            self.sliders[color] = (self.hue_slider, self.sat_slider, self.light_slider, (low, high))
+
+        self.update_sliders()
+        self.color_combobox.bind("<<ComboboxSelected>>", self.update_sliders)
+
+        # Nút áp dụng chỉnh sửa
+        self.apply_button = tk.Button(self, text="Apply HSL Changes", command=self.apply_hsl_color_changes)
+        self.apply_button.pack(pady=10)
+
+    def update_sliders(self):
+        selected_color = self.color_combobox.get()
+
+        for widgets in self.slider_frame.winfo_children():
+            widgets.pack_forget()
+
+        hue_slider, sat_slider, light_slider, _ = self.sliders[selected_color]
+
+        tk.Label(self.slider_frame, text=f"{selected_color} - Hue Shift").pack()
+        hue_slider.pack()
+        tk.Label(self.slider_frame, text=f"{selected_color} - Saturation Factor").pack()
+        sat_slider.pack()
+        tk.Label(self.slider_frame, text=f"{selected_color} - Lightness Factor").pack()
+        light_slider.pack()
+
+    def apply_hsl_color_changes(self):
+        global img_current, img_temp
+        if img_current is None:
+            return
+        print(img_current)
+        # Tạo bản sao ảnh HSV
+        hsv_image = cv2.cvtColor(np.array(img_current), cv2.COLOR_RGB2HSV).astype(np.float32)
+        original_hue = hsv_image[..., 0]
+        
+        # Lấy thông tin màu đang chọn
+        selected_color = self.color_combobox.get()
+        hue_slider, sat_slider, light_slider, (low, high) = self.sliders[selected_color]
+        hue_shift = hue_slider.get()
+        saturation_factor = sat_slider.get()
+        lightness_factor = light_slider.get()
+
+        # Xác định vùng màu
+        if selected_color == "Red":
+            mask = ((original_hue >= low) & (original_hue < high)) | ((original_hue >= 172.5) & (original_hue < 180))
+        else:
+            mask = (original_hue >= low) & (original_hue < high)
+        # Áp dụng thay đổi cho vùng màu đó
+        hsv_image[..., 0][mask] = (hsv_image[..., 0][mask] + hue_shift) % 180
+        hsv_image[..., 1][mask] = np.clip(hsv_image[..., 1][mask] * saturation_factor, 0, 255)
+        hsv_image[..., 2][mask] = np.clip(hsv_image[..., 2][mask] * lightness_factor, 0, 255)
+
+        # Chuyển lại sang BGR và hiển thị
+        img_temp = cv2.cvtColor(hsv_image.astype(np.uint8), cv2.COLOR_HSV2RGB)
+        img_temp = Image.fromarray(img_temp)
+        display_image(img_temp,label_temp)
+
 class EditBrightnessWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
         super().__init__(parent)
@@ -1240,10 +1324,16 @@ if __name__ == "__main__":
 
     file_menu = Menu(menu_bar, tearoff=0)
     edit_menu = Menu(menu_bar, tearoff=0)
-    process_menu = Menu(menu_bar, tearoff=0)
+    process_menu = Menu(menu_bar,tearoff=0)
+    color_menu = Menu(menu_bar,tearoff=0)
+    
     menu_bar.add_cascade(label="File", menu=file_menu)
     menu_bar.add_cascade(label="Edit", menu=edit_menu)
     menu_bar.add_cascade(label="Process", menu=process_menu)
+    menu_bar.add_cascade(label="Adjust Color", menu=color_menu)
+
+    color_menu.add_command(label="RGB color space", command= lambda: open_color_window(app))
+    color_menu.add_command(label="HSV color space", command= lambda: open_color_window_hsv(app))
     file_menu.add_command(label="Open", command=open_image)
     file_menu.add_command(label="Save", command=save_image)
     file_menu.add_command(label="Exit", command=quit)

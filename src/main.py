@@ -13,6 +13,16 @@ coord_y: int = 0
 current_r = 100
 current_g = 100
 current_b = 100
+
+current_y = 100
+current_u = 100
+current_v = 100
+
+current_c=100
+current_m=100
+current_y2=100
+current_k=100
+
 current_color_format = "RGB" 
 current_brightness = 100
 
@@ -117,15 +127,21 @@ def display_image(image: Image.Image | None, label: tk.Label) -> Image.Image | N
 
 def open_color_window(root):
     EditColorWindow(root)
+
 def open_color_window_hsv(root):
     EditHSVColorWindow(root)
+
 def open_brightness_window(root):
     EditBrightnessWindow(root)
-
 
 def open_histogram_window(root):
     EditHistogramWindow(root)
 
+def open_color_window_yuv(root):
+    EditYUVColorWindow(root)
+
+def open_color_window_cmyk(root):
+    EditCMYKColorWindow(root)
 
 class ResizeWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk) -> None:
@@ -684,6 +700,100 @@ class EditColorWindow(tk.Toplevel):
         self.b_scale.set(100)
         self.update_color(100, 100, 100)
 
+class EditYUVColorWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Adjust Colors YUV")
+        self.geometry("200x250")
+
+        # Variables to track RGB values from scales
+        self.y_value = tk.IntVar(value=current_y)
+        self.u_value = tk.IntVar(value=current_u)
+        self.v_value = tk.IntVar(value=current_v)
+
+        # Red Scale
+        self.y_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="Y (Luminance)", variable=self.y_value)
+        self.y_scale.pack()
+        # Green Scale
+        self.u_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="U (Chrominance - Blue difference)", variable=self.u_value)
+        self.u_scale.pack()
+        # Blue Scale
+        self.v_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="V (Chrominance - Red difference)", variable=self.v_value)
+        self.v_scale.pack()
+
+        self.reset_button = tk.Button(self, text="Reset", command=self.reset_color)
+        self.reset_button.pack(pady=10)
+
+        # Update color when scale values change
+        def on_scale_change(event=None):
+            self.update_color(self.y_value.get(), self.u_value.get(), self.v_value.get())
+
+        # Bind scale changes to color update
+        self.y_scale.bind("<ButtonRelease-1>", on_scale_change)
+        self.u_scale.bind("<ButtonRelease-1>", on_scale_change)
+        self.v_scale.bind("<ButtonRelease-1>", on_scale_change)
+
+    def update_color(self, y, u, v):
+        global img_current, img_temp, current_y, current_u, current_v
+
+        if img_temp:
+
+            y_factor = y / 100
+            u_factor = u / 100
+            v_factor = v / 100
+
+            r, g, b, a = img_current.split()
+            
+            # Chuyển đổi RGB sang YUV
+            y_img, u_img, v_img = self.rgb_to_yuv(r, g, b)
+
+            # Áp dụng các thay đổi
+            y_img *= y_factor
+            u_img *= u_factor
+            v_img *= v_factor
+
+            current_y= y
+            current_u= u
+            current_v= v
+            # Chuyển đổi YUV trở lại RGB
+            r_img, g_img, b_img = self.yuv_to_rgb(y_img, u_img, v_img)
+
+            img_temp = Image.merge("RGBA", (r_img, g_img, b_img, a))
+            display_image(img_temp, label_temp)
+
+    def reset_color(self):
+        self.y_scale.set(100)
+        self.u_scale.set(100)
+        self.v_scale.set(100)
+        self.update_color(100, 100, 100)
+
+
+    def rgb_to_yuv(self, r_img, g_img, b_img):
+        R = np.array(r_img, dtype=np.float32)
+        G = np.array(g_img, dtype=np.float32)
+        B = np.array(b_img, dtype=np.float32)
+
+        Y = 0.299 * R + 0.587 * G + 0.114 * B
+        U = R - Y
+        V = B - Y
+
+        return Y, U, V
+
+    def yuv_to_rgb(self, y_img, u_img, v_img):
+        Y = np.array(y_img, dtype=np.float32)
+        U = np.array(u_img, dtype=np.float32)
+        V = np.array(v_img, dtype=np.float32)
+
+        R = Y + U
+        B = Y + V
+        G = (Y - 0.299 * R - 0.114 * B) / 0.587
+
+        R = np.clip(R, 0, 255).astype(np.uint8)
+        G = np.clip(G, 0, 255).astype(np.uint8)
+        B = np.clip(B, 0, 255).astype(np.uint8)
+
+        return Image.fromarray(R), Image.fromarray(G), Image.fromarray(B)
 
 class EditHSVColorWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
@@ -724,9 +834,8 @@ class EditHSVColorWindow(tk.Toplevel):
         self.apply_button = tk.Button(self, text="Apply HSL Changes", command=self.apply_hsl_color_changes)
         self.apply_button.pack(pady=10)
 
-    def update_sliders(self):
+    def update_sliders(self, _=None):
         selected_color = self.color_combobox.get()
-
         for widgets in self.slider_frame.winfo_children():
             widgets.pack_forget()
 
@@ -769,6 +878,111 @@ class EditHSVColorWindow(tk.Toplevel):
         img_temp = cv2.cvtColor(hsv_image.astype(np.uint8), cv2.COLOR_HSV2RGB)
         img_temp = Image.fromarray(img_temp)
         display_image(img_temp,label_temp)
+
+class EditCMYKColorWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Adjust Colors CMYK")
+        self.geometry("200x250")
+
+
+        self.c_value = tk.IntVar(value=current_c)
+        self.m_value = tk.IntVar(value=current_m)
+        self.y_value = tk.IntVar(value=current_y2)
+        self.k_value = tk.IntVar(value=current_k)
+
+        self.c_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="Cyan", variable=self.c_value)
+        self.c_scale.pack()
+
+        self.m_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="Magenta", variable=self.m_value)
+        self.m_scale.pack()
+
+        self.y_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="Yellow", variable=self.y_value)
+        self.y_scale.pack()
+
+        self.k_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="Black", variable=self.k_value)
+        self.k_scale.pack()
+
+        self.reset_button = tk.Button(self, text="Reset", command=self.reset_color)
+        self.reset_button.pack(pady=10)
+
+        # Update color when scale values change
+        def on_scale_change(event=None):
+            self.update_color(self.c_value.get(), self.m_value.get(), self.y_value.get(), self.k_value.get())
+
+        # Bind scale changes to color update
+        self.c_scale.bind("<ButtonRelease-1>", on_scale_change)
+        self.m_scale.bind("<ButtonRelease-1>", on_scale_change)
+        self.y_scale.bind("<ButtonRelease-1>", on_scale_change)
+
+    def update_color(self, c, m, y, k):
+        global img_current, img_temp, current_c, current_m, current_y2, current_k
+
+        if img_temp:
+
+            c_factor = c / 100
+            m_factor = m / 100
+            y_factor = y / 100
+            k_factor = k / 100
+            
+            r, g, b, a = img_current.split()
+
+            img_rgb = Image.merge("RGB", (r, g, b))
+            img_rgb = np.array(img_rgb)
+            # Chuyển đổi RGB sang YUV
+            c_img, m_img, y_img, k_img = self.rgb_to_cmyk(img_rgb)
+
+            # Áp dụng các thay đổi
+            c_img *= c_factor
+            m_img *= m_factor
+            y_img *= y_factor
+            k_img *= k_factor
+
+            current_c= c
+            current_m= m
+            current_y2= y
+            current_k= k
+
+            # Chuyển đổi YUV trở lại RGB
+            
+            r_img, g_img, b_img = self.cmyk_to_rgb(c_img, m_img, y_img,k_img)
+            r_img = Image.fromarray(r_img.astype(np.uint8), mode="L")
+            g_img = Image.fromarray(g_img.astype(np.uint8), mode="L")
+            b_img = Image.fromarray(b_img.astype(np.uint8), mode="L")
+            img_temp = Image.merge("RGBA", (r_img, g_img, b_img, a))
+            display_image(img_temp, label_temp)
+
+    def reset_color(self):
+        self.c_scale.set(100)
+        self.m_scale.set(100)
+        self.y_scale.set(100)
+        self.k_scale.set(100)
+        self.update_color(100, 100, 100, 100)
+
+    def rgb_to_cmyk(self, rgb_image):
+
+        rgb_normalized = rgb_image / 255.0
+
+        # Tính kênh K
+        K = 1 - np.max(rgb_normalized, axis=-1)
+
+        # Tránh chia cho 0
+        K[K == 1] = 1 - 1e-10
+
+        # Tính kênh C, M, Y
+        C = (1 - rgb_normalized[..., 0] - K) / (1 - K)
+        M = (1 - rgb_normalized[..., 1] - K) / (1 - K)
+        Y = (1 - rgb_normalized[..., 2] - K) / (1 - K)
+
+        return C,M,Y,K
+    
+    def cmyk_to_rgb(self, C, M, Y, K):
+        # Tính kênh R, G, B
+        R = (1 - C) * (1 - K) *255
+        G = (1 - M) * (1 - K) *255
+        B = (1 - Y) * (1 - K) *255
+        return R,G,B
 
 class EditBrightnessWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
@@ -1326,30 +1540,34 @@ if __name__ == "__main__":
     edit_menu = Menu(menu_bar, tearoff=0)
     process_menu = Menu(menu_bar,tearoff=0)
     color_menu = Menu(menu_bar,tearoff=0)
-    
+    histogram_menu = Menu(menu_bar, tearoff=0)
+
     menu_bar.add_cascade(label="File", menu=file_menu)
     menu_bar.add_cascade(label="Edit", menu=edit_menu)
     menu_bar.add_cascade(label="Process", menu=process_menu)
     menu_bar.add_cascade(label="Adjust Color", menu=color_menu)
+    menu_bar.add_cascade(label="Histogram", menu=histogram_menu)
 
     color_menu.add_command(label="RGB color space", command= lambda: open_color_window(app))
     color_menu.add_command(label="HSV color space", command= lambda: open_color_window_hsv(app))
+    color_menu.add_command(label="YUV color space", command= lambda: open_color_window_yuv(app))
+    color_menu.add_command(label="CMYK color space", command= lambda: open_color_window_cmyk(app))
+
     file_menu.add_command(label="Open", command=open_image)
     file_menu.add_command(label="Save", command=save_image)
     file_menu.add_command(label="Exit", command=quit)
     edit_menu.add_command(label="Resize", command=lambda: open_resize_window(app))
     edit_menu.add_command(label="Change transparency", command=lambda: open_tpc_window(app))
     edit_menu.add_command(label="Paste image", command=lambda: open_paste_window(app))
-    # edit_menu.add_command(label="Crop image", command=lambda: open_crop_window(app))
+
+    histogram_menu.add_command(label="Histogram", command=lambda: open_histogram_window(app))
 
     crop_menu = Menu(edit_menu, tearoff=0)
     edit_menu.add_cascade(label="Crop image", menu=crop_menu)
     crop_menu.add_command(label="Crop with mouse", command=lambda: open_mouse_crop_window(app))
     crop_menu.add_command(label="Crop with coordinate", command=lambda: open_crop_window(app))
 
-    process_menu.add_command(label="Edit Color", command=lambda: open_color_window(app))
     process_menu.add_command(label="Brightness", command=lambda: open_brightness_window(app))
-    process_menu.add_command(label="Histogram", command=lambda: open_histogram_window(app))
     process_menu.add_command(label="Invert Color", command=lambda: open_invert_window(app))
     process_menu.add_command(label="Add/Subtract Image", command=lambda: open_add_subtract_window(app))
 

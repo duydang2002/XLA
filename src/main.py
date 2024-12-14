@@ -1627,8 +1627,8 @@ class LinearWindow(tk.Toplevel):
     def update_plot(self):
         a = self.a.get()
         b = self.b.get()
-        x = [i for i in range(0, 100)]
-        y = [a * i + b for i in range(0, 100)]
+        x = [i for i in range(0, 256)]
+        y = [a * i + b for i in range(0, 256)]
         self.ax.clear()
         self.ax.plot(x, y)
         self.ax.set_xlim(0, 256)

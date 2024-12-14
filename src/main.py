@@ -4,6 +4,9 @@ from typing import Dict
 from PIL import Image, ImageTk
 import numpy as np
 import cv2
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 img_current: Image.Image | None = None
 img_temp: Image.Image | None = None
@@ -1388,7 +1391,6 @@ class InvertColorWindow(tk.Toplevel):
             img_temp = local_img_temp.convert('RGBA')
             display_image(local_img_temp, label_temp)
 
-
 # A window that allows cropping by mouse
 class MouseCropWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
@@ -1526,6 +1528,380 @@ class AddSubtractImageWindow(tk.Toplevel):
             img_temp = Image.fromarray(result_np)
             display_image(img_temp, label_temp)
 
+
+def open_identity_window(root):
+    IdentityWindow(root)
+
+def open_linear_window(root):
+    LinearWindow(root)
+
+def open_invert_window(root):
+    InvertWindow(root)
+
+def open_threshold_window(root):
+    ThresholdWindow(root)
+
+def open_log_window(root):
+    LogWindow(root)
+
+def open_inverse_log_window(root):
+    InverseLogWindow(root)
+
+def open_power_window(root):
+    PowerWindow(root)
+
+class IdentityWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Identity Transformation")
+        self.geometry("600x600")
+
+        # Label to show the mathematical function
+        function_label = tk.Label(self, text="Identity Transformation: f(x) = x", font=("Helvetica", 16))
+        function_label.pack(pady=20)
+
+        # Create a plot for the identity function
+        fig = Figure(figsize=(3, 3), dpi=100)
+        ax = fig.add_subplot(111)
+        x = [i for i in range(0, 256)]
+        y = x
+        ax.plot(x, y)
+        ax.set_title("f(x) = x")
+        ax.set_xlabel("x")
+        ax.set_ylabel("f(x)")
+
+        # Embed the plot in the Tkinter window
+        canvas = FigureCanvasTkAgg(fig, master=self)
+        canvas.draw()
+        canvas.get_tk_widget().pack(pady=20)
+
+        # Apply button to perform the identity transformation
+        apply_button = tk.Button(self, text="Apply Identity Transformation", command=self.apply_identity)
+        apply_button.pack(pady=20)
+
+    def apply_identity(self):
+        global img_temp, label_temp
+        # Identity transformation does not change the image
+        display_image(img_temp, label_temp)
+
+
+class LinearWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Linear Transformation")
+        self.geometry("600x600")
+
+        # Variables for a and b
+        self.a = tk.DoubleVar(value=1.0)
+        self.b = tk.DoubleVar(value=0.0)
+
+        # Entry fields for a and b
+        a_label = tk.Label(self, text="a:", font=("Helvetica", 12))
+        a_label.pack(pady=5)
+        a_entry = tk.Entry(self, textvariable=self.a, font=("Helvetica", 12))
+        a_entry.pack(pady=5)
+
+        b_label = tk.Label(self, text="b:", font=("Helvetica", 12))
+        b_label.pack(pady=5)
+        b_entry = tk.Entry(self, textvariable=self.b, font=("Helvetica", 12))
+        b_entry.pack(pady=5)
+
+        # Button to update the plot
+        update_button = tk.Button(self, text="Update Plot", command=self.update_plot)
+        update_button.pack(pady=20)
+        apply_button = tk.Button(self, text="Apply Linear Transformation", command=self.apply_linear)
+        apply_button.pack(pady=20)
+
+        # Create a plot for the linear function
+        self.fig = Figure(figsize=(3, 3), dpi=100)
+        self.ax = self.fig.add_subplot(111)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(pady=20)
+
+        # Initial plot
+        self.update_plot()
+
+    def update_plot(self):
+        a = self.a.get()
+        b = self.b.get()
+        x = [i for i in range(0, 100)]
+        y = [a * i + b for i in range(0, 100)]
+        self.ax.clear()
+        self.ax.plot(x, y)
+        self.ax.set_xlim(0, 256)
+        self.ax.set_ylim(0, 256)
+        self.ax.set_title(f"f(x) = {a}x + {b}")
+        self.ax.set_xlabel("x")
+        self.ax.set_ylabel("f(x)")
+        self.canvas.draw()
+
+    def apply_linear(self):
+        global img_temp, label_temp
+        a = self.a.get()
+        b = self.b.get()
+        img_array = np.array(img_temp)
+        transformed_img_array = a * img_array + b
+        transformed_img_array = np.clip(transformed_img_array, 0, 255).astype(np.uint8)
+        transformed_img = Image.fromarray(transformed_img_array)
+        display_image(transformed_img, label_temp)
+
+class InvertWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Inverse Transformation")
+        self.geometry("600x600")
+
+        apply_button = tk.Button(self, text="Apply Inverse Transformation", command=self.apply_invert)
+        apply_button.pack(pady=20)
+
+        # Create a plot for the invert function
+        self.fig = Figure(figsize=(3, 3), dpi=100)
+        self.ax = self.fig.add_subplot(111)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(pady=20)
+
+        # Initial plot
+        self.update_plot()
+
+    def update_plot(self):
+        x = [i for i in range(0, 256)]
+        y = [255 - i for i in range(0, 256)]
+        self.ax.clear()
+        self.ax.plot(x, y)
+        self.ax.set_xlim(0, 256)
+        self.ax.set_ylim(0, 256)
+        self.ax.set_title("f(x) = 255 - x")
+        self.ax.set_xlabel("x")
+        self.ax.set_ylabel("f(x)")
+        self.canvas.draw()
+
+    def apply_invert(self):
+        global img_temp, label_temp
+        img_array = np.array(img_temp)
+        transformed_img_array = 255 - img_array
+        transformed_img = Image.fromarray(transformed_img_array)
+        display_image(transformed_img, label_temp)
+
+class ThresholdWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Threshold Transformation")
+        self.geometry("600x600")
+
+        self.threshold = tk.DoubleVar(value=128.0)
+
+        threshold_label = tk.Label(self, text="Threshold:", font=("Helvetica", 12))
+        threshold_label.pack(pady=5)
+        threshold_entry = tk.Entry(self, textvariable=self.threshold, font=("Helvetica", 12))
+        threshold_entry.pack(pady=5)
+
+        update_button = tk.Button(self, text="Update Plot", command=self.update_plot)
+        update_button.pack(pady=20)
+        apply_button = tk.Button(self, text="Apply Threshold Transformation", command=self.apply_threshold)
+        apply_button.pack(pady=20)
+
+        # Create a plot for the threshold function
+        self.fig = Figure(figsize=(3, 3), dpi=100)
+        self.ax = self.fig.add_subplot(111)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(pady=20)
+
+        # Initial plot
+        self.update_plot()
+
+    def update_plot(self):
+        threshold = self.threshold.get()
+        x = [i for i in range(0, 256)]
+        y = [255 if i > threshold else 0 for i in range(0, 256)]
+        self.ax.clear()
+        self.ax.plot(x, y)
+        self.ax.set_xlim(0, 256)
+        self.ax.set_ylim(0, 256)
+        self.ax.set_title(f"f(x) = 255 if x > {threshold} else 0")
+        self.ax.set_xlabel("x")
+        self.ax.set_ylabel("f(x)")
+        self.canvas.draw()
+
+    def apply_threshold(self):
+        global img_temp, label_temp
+        threshold = self.threshold.get()
+        img_array = np.array(img_temp)
+        transformed_img_array = (img_array > threshold) * 255
+        transformed_img = Image.fromarray(transformed_img_array.astype(np.uint8))
+        display_image(transformed_img, label_temp)
+
+class LogWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Log Transformation")
+        self.geometry("600x600")
+
+        self.c = tk.DoubleVar(value=1.0)
+
+        c_label = tk.Label(self, text="c: 255/log(256)", font=("Helvetica", 12))
+        c_label.pack(pady=5)
+        # c_entry = tk.Entry(self, textvariable=self.c, font=("Helvetica", 12))
+        # c_entry.pack(pady=5)
+
+        apply_button = tk.Button(self, text="Apply Log Transformation", command=self.apply_log)
+        apply_button.pack(pady=20)
+
+        # Create a plot for the log function
+        self.fig = Figure(figsize=(3, 3), dpi=100)
+        self.ax = self.fig.add_subplot(111)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(pady=20)
+
+        # Initial plot
+        self.update_plot()
+
+    def update_plot(self):
+        # c = self.c.get()
+        c = 255 / np.log(256)
+        x = [i for i in range(1, 256)]
+        y = [c * np.log(1 + i) for i in range(1, 256)]
+        self.ax.clear()
+        self.ax.plot(x, y)
+        self.ax.set_xlim(0, 256)
+        self.ax.set_ylim(0, 256)
+        self.ax.set_title(f"f(x) = c * log(1 + x)")
+        self.ax.set_xlabel("x")
+        self.ax.set_ylabel("f(x)")
+        self.canvas.draw()
+
+    def apply_log(self):
+        global img_temp, label_temp
+        # c = self.c.get()
+        c = 255 / np.log(256)
+        img_array = np.array(img_temp)
+        transformed_img_array = c * np.log1p(img_array)
+        transformed_img_array = np.clip(transformed_img_array, 0, 255).astype(np.uint8)
+        transformed_img = Image.fromarray(transformed_img_array)
+        display_image(transformed_img, label_temp)
+
+class InverseLogWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Inverse Log Transformation")
+        self.geometry("600x600")
+
+        self.c = tk.DoubleVar(value=1.0)
+
+        c_label = tk.Label(self, text="c: 255/log(256)", font=("Helvetica", 12))
+        c_label.pack(pady=5)
+        # c_entry = tk.Entry(self, textvariable=self.c, font=("Helvetica", 12))
+        # c_entry.pack(pady=5)
+
+        apply_button = tk.Button(self, text="Apply Inverse Log Transformation", command=self.apply_inverse_log)
+        apply_button.pack(pady=20)
+
+        # Create a plot for the inverse log function
+        self.fig = Figure(figsize=(3, 3), dpi=100)
+        self.ax = self.fig.add_subplot(111)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(pady=20)
+
+        # Initial plot
+        self.update_plot()
+
+    def update_plot(self):
+        # c = self.c.get()
+        c = 255 / np.log(256)
+        x = [i for i in range(0, 256)]
+        y = [np.expm1(i / c) for i in range(0, 256)]
+        self.ax.clear()
+        self.ax.plot(x, y)
+        self.ax.set_xlim(0, 256)
+        self.ax.set_ylim(0, 256)
+        self.ax.set_title(f"f(x) = exp(x / c) - 1")
+        self.ax.set_xlabel("x")
+        self.ax.set_ylabel("f(x)")
+        self.canvas.draw()
+
+    def apply_inverse_log(self):
+        global img_temp, label_temp
+        # c = self.c.get()
+        c = 255 / np.log(256)
+        img_array = np.array(img_temp)
+        transformed_img_array = np.expm1(img_array / c)
+        transformed_img_array = np.clip(transformed_img_array, 0, 255).astype(np.uint8)
+        transformed_img = Image.fromarray(transformed_img_array)
+        display_image(transformed_img, label_temp)
+
+class PowerWindow(tk.Toplevel):
+    def __init__(self, parent: tk.Tk):
+        super().__init__(parent)
+        self.parent = parent
+        self.title("Power Transformation")
+        self.geometry("600x600")
+
+        self.c = tk.DoubleVar(value=1.0)
+        self.gamma = tk.DoubleVar(value=1.0)
+
+        c_label = tk.Label(self, text="c: 1", font=("Helvetica", 12))
+        c_label.pack(pady=5)
+        # c_entry = tk.Entry(self, textvariable=self.c, font=("Helvetica", 12))
+        # c_entry.pack(pady=5)
+
+        gamma_label = tk.Label(self, text="gamma:", font=("Helvetica", 12))
+        gamma_label.pack(pady=5)
+        gamma_entry = tk.Entry(self, textvariable=self.gamma, font=("Helvetica", 12))
+        gamma_entry.pack(pady=5)
+
+        update_button = tk.Button(self, text="Update Plot", command=self.update_plot)
+        update_button.pack(pady=20)
+        apply_button = tk.Button(self, text="Apply Power Transformation", command=self.apply_power)
+        apply_button.pack(pady=20)
+        
+        # Create a plot for the power function
+        self.fig = Figure(figsize=(3, 3), dpi=100)
+        self.ax = self.fig.add_subplot(111)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(pady=20)
+
+        # Initial plot
+        self.update_plot()
+
+    def update_plot(self):
+        # c = self.c.get()
+        c = 1
+        gamma = self.gamma.get()
+        x = [i for i in range(0, 256)]
+        normalized_x = [i / 255 for i in range(0, 256)]
+        y = [255 * c * np.power(i, gamma) for i in normalized_x]
+        self.ax.clear()
+        self.ax.plot(x, y)
+        self.ax.set_xlim(0, 256)
+        self.ax.set_ylim(0, 256)
+        self.ax.set_title(f"f(x) = {c} * x^{gamma}")
+        self.ax.set_xlabel("x")
+        self.ax.set_ylabel("f(x)")
+        self.canvas.draw()
+
+    def apply_power(self):
+        global img_temp, label_temp
+        # c = self.c.get()
+        c = 1
+        gamma = self.gamma.get()
+        img_array = np.array(img_temp)
+        transformed_img_array = c * np.power(img_array, gamma)
+        transformed_img_array = np.clip(transformed_img_array, 0, 255).astype(np.uint8)
+        transformed_img = Image.fromarray(transformed_img_array)
+        display_image(transformed_img, label_temp)
+
+
 # this comment is just for git testing purpose 
 if __name__ == "__main__":
     app = tk.Tk()
@@ -1541,17 +1917,27 @@ if __name__ == "__main__":
     process_menu = Menu(menu_bar,tearoff=0)
     color_menu = Menu(menu_bar,tearoff=0)
     histogram_menu = Menu(menu_bar, tearoff=0)
+    contrast_menu = Menu(menu_bar, tearoff=0)
 
     menu_bar.add_cascade(label="File", menu=file_menu)
     menu_bar.add_cascade(label="Edit", menu=edit_menu)
     menu_bar.add_cascade(label="Process", menu=process_menu)
     menu_bar.add_cascade(label="Adjust Color", menu=color_menu)
+    menu_bar.add_cascade(label="Adjust Contrast", menu=contrast_menu)
     menu_bar.add_cascade(label="Histogram", menu=histogram_menu)
 
     color_menu.add_command(label="RGB color space", command= lambda: open_color_window(app))
     color_menu.add_command(label="HSV color space", command= lambda: open_color_window_hsv(app))
     color_menu.add_command(label="YUV color space", command= lambda: open_color_window_yuv(app))
     color_menu.add_command(label="CMYK color space", command= lambda: open_color_window_cmyk(app))
+
+    contrast_menu.add_command(label="Identity/Homogenous", command= lambda: open_identity_window(app))
+    contrast_menu.add_command(label="Linear", command= lambda: open_linear_window(app))
+    contrast_menu.add_command(label="Invert", command= lambda: open_invert_window(app))
+    contrast_menu.add_command(label="Threshold", command= lambda: open_threshold_window(app))
+    contrast_menu.add_command(label="Logarithmic", command= lambda: open_log_window(app))
+    contrast_menu.add_command(label="Inverse Logarithmic", command= lambda: open_inverse_log_window(app))
+    contrast_menu.add_command(label="Power", command= lambda: open_power_window(app))
 
     file_menu.add_command(label="Open", command=open_image)
     file_menu.add_command(label="Save", command=save_image)

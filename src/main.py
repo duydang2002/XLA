@@ -649,13 +649,13 @@ class EditColorWindow(tk.Toplevel):
         self.b_value = tk.IntVar(value=current_b)
 
         # Red Scale
-        self.r_scale = tk.Scale(self, from_=10, to=200, orient="horizontal", label="Red", variable=self.r_value)
+        self.r_scale = tk.Scale(self, from_=0, to=200, orient="horizontal", label="Red", variable=self.r_value)
         self.r_scale.pack()
         # Green Scale
-        self.g_scale = tk.Scale(self, from_=10, to=200, orient="horizontal", label="Green", variable=self.g_value)
+        self.g_scale = tk.Scale(self, from_=0, to=200, orient="horizontal", label="Green", variable=self.g_value)
         self.g_scale.pack()
         # Blue Scale
-        self.b_scale = tk.Scale(self, from_=10, to=200, orient="horizontal", label="Blue", variable=self.b_value)
+        self.b_scale = tk.Scale(self, from_=0, to=200, orient="horizontal", label="Blue", variable=self.b_value)
         self.b_scale.pack()
 
         self.reset_button = tk.Button(self, text="Reset", command=self.reset_color)
@@ -1915,14 +1915,12 @@ if __name__ == "__main__":
 
     file_menu = Menu(menu_bar, tearoff=0)
     edit_menu = Menu(menu_bar, tearoff=0)
-    process_menu = Menu(menu_bar,tearoff=0)
     color_menu = Menu(menu_bar,tearoff=0)
     histogram_menu = Menu(menu_bar, tearoff=0)
     contrast_menu = Menu(menu_bar, tearoff=0)
 
     menu_bar.add_cascade(label="File", menu=file_menu)
     menu_bar.add_cascade(label="Edit", menu=edit_menu)
-    menu_bar.add_cascade(label="Process", menu=process_menu)
     menu_bar.add_cascade(label="Adjust Color", menu=color_menu)
     menu_bar.add_cascade(label="Adjust Contrast", menu=contrast_menu)
     menu_bar.add_cascade(label="Histogram", menu=histogram_menu)
@@ -1954,9 +1952,6 @@ if __name__ == "__main__":
     crop_menu.add_command(label="Crop with mouse", command=lambda: open_mouse_crop_window(app))
     crop_menu.add_command(label="Crop with coordinate", command=lambda: open_crop_window(app))
 
-    process_menu.add_command(label="Brightness", command=lambda: open_brightness_window(app))
-    process_menu.add_command(label="Invert Color", command=lambda: open_invert_window(app))
-    process_menu.add_command(label="Add/Subtract Image", command=lambda: open_add_subtract_window(app))
 
     # Label to display label_current coordinates
     coords_label = tk.Label(app, text="Left click to see coordinates", font=("Helvetica", 14))

@@ -716,13 +716,13 @@ class EditYUVColorWindow(tk.Toplevel):
         self.v_value = tk.IntVar(value=current_v)
 
         # Red Scale
-        self.y_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="Y (Luminance)", variable=self.y_value)
+        self.y_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="Y (Luminance)", variable=self.y_value)
         self.y_scale.pack()
         # Green Scale
-        self.u_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="U (Chrominance - Blue difference)", variable=self.u_value)
+        self.u_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="U (Chrominance - Blue difference)", variable=self.u_value)
         self.u_scale.pack()
         # Blue Scale
-        self.v_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="V (Chrominance - Red difference)", variable=self.v_value)
+        self.v_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="V (Chrominance - Red difference)", variable=self.v_value)
         self.v_scale.pack()
 
         self.reset_button = tk.Button(self, text="Reset", command=self.reset_color)
@@ -895,16 +895,16 @@ class EditCMYKColorWindow(tk.Toplevel):
         self.y_value = tk.IntVar(value=current_y2)
         self.k_value = tk.IntVar(value=current_k)
 
-        self.c_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="Cyan", variable=self.c_value)
+        self.c_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="Cyan", variable=self.c_value)
         self.c_scale.pack()
 
-        self.m_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="Magenta", variable=self.m_value)
+        self.m_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="Magenta", variable=self.m_value)
         self.m_scale.pack()
 
-        self.y_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="Yellow", variable=self.y_value)
+        self.y_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="Yellow", variable=self.y_value)
         self.y_scale.pack()
 
-        self.k_scale = tk.Scale(self, from_=10, to=255, orient="horizontal", label="Black", variable=self.k_value)
+        self.k_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="Black", variable=self.k_value)
         self.k_scale.pack()
 
         self.reset_button = tk.Button(self, text="Reset", command=self.reset_color)
@@ -918,6 +918,7 @@ class EditCMYKColorWindow(tk.Toplevel):
         self.c_scale.bind("<ButtonRelease-1>", on_scale_change)
         self.m_scale.bind("<ButtonRelease-1>", on_scale_change)
         self.y_scale.bind("<ButtonRelease-1>", on_scale_change)
+        self.k_scale.bind("<ButtonRelease-1>", on_scale_change)
 
     def update_color(self, c, m, y, k):
         global img_current, img_temp, current_c, current_m, current_y2, current_k
@@ -933,9 +934,9 @@ class EditCMYKColorWindow(tk.Toplevel):
 
             img_rgb = Image.merge("RGB", (r, g, b))
             img_rgb = np.array(img_rgb)
-            # Chuyển đổi RGB sang YUV
+            # Chuyển đổi RGB sang CMYK
             c_img, m_img, y_img, k_img = self.rgb_to_cmyk(img_rgb)
-
+            print(k_img)
             # Áp dụng các thay đổi
             c_img *= c_factor
             m_img *= m_factor
@@ -947,7 +948,7 @@ class EditCMYKColorWindow(tk.Toplevel):
             current_y2= y
             current_k= k
 
-            # Chuyển đổi YUV trở lại RGB
+            # Chuyển đổi CMYK trở lại RGB
             
             r_img, g_img, b_img = self.cmyk_to_rgb(c_img, m_img, y_img,k_img)
             r_img = Image.fromarray(r_img.astype(np.uint8), mode="L")

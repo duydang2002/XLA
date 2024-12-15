@@ -803,7 +803,7 @@ class EditHSVColorWindow(tk.Toplevel):
         super().__init__(parent)
         self.parent = parent
         self.title("Adjust Colors HSV")
-        self.geometry("900x700")
+        self.geometry("500x300")
         colors = [
         ("Red", 0, 15),
         ("Orange", 15, 22.5),
@@ -824,10 +824,10 @@ class EditHSVColorWindow(tk.Toplevel):
         self.sliders = {}
         for color, low, high in colors:
             self.hue_slider = tk.Scale(self.slider_frame, from_=-30, to=30, orient=tk.HORIZONTAL, length=300)
-            self.sat_slider = tk.Scale(self.slider_frame, from_=0.0, to=3.0, orient=tk.HORIZONTAL, length=300)
-            self.sat_slider.set(1.0)
-            self.light_slider = tk.Scale(self.slider_frame, from_=0.0, to=3.0, orient=tk.HORIZONTAL, length=300)
-            self.light_slider.set(1.0)
+            self.sat_slider = tk.Scale(self.slider_frame, from_=0.0, to=200, orient=tk.HORIZONTAL, length=300)
+            self.sat_slider.set(100)
+            self.light_slider = tk.Scale(self.slider_frame, from_=0.0, to=200, orient=tk.HORIZONTAL, length=300)
+            self.light_slider.set(100)
             self.sliders[color] = (self.hue_slider, self.sat_slider, self.light_slider, (low, high))
 
         self.update_sliders()
@@ -874,8 +874,8 @@ class EditHSVColorWindow(tk.Toplevel):
             mask = (original_hue >= low) & (original_hue < high)
         # Áp dụng thay đổi cho vùng màu đó
         hsv_image[..., 0][mask] = (hsv_image[..., 0][mask] + hue_shift) % 180
-        hsv_image[..., 1][mask] = np.clip(hsv_image[..., 1][mask] * saturation_factor, 0, 255)
-        hsv_image[..., 2][mask] = np.clip(hsv_image[..., 2][mask] * lightness_factor, 0, 255)
+        hsv_image[..., 1][mask] = np.clip(hsv_image[..., 1][mask] * saturation_factor/100, 0, 255)
+        hsv_image[..., 2][mask] = np.clip(hsv_image[..., 2][mask] * lightness_factor/100, 0, 255)
 
         # Chuyển lại sang BGR và hiển thị
         img_temp = cv2.cvtColor(hsv_image.astype(np.uint8), cv2.COLOR_HSV2RGB)

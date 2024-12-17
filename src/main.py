@@ -41,7 +41,8 @@ def open_image() -> None:
     if file_path:
         img_current = Image.open(file_path)
         print(f">Image opened, mode: {img_current.mode}, size: {img_current.size}")
-        if img_current.mode == 'RGB':
+        if img_current.mode != 'RGBA':
+            print( img_current.mode )
             img_current = img_current.convert('RGBA')
             print(">Added an alpha channel.")
         if img_current.size > (600, 600):
@@ -716,13 +717,13 @@ class EditYUVColorWindow(tk.Toplevel):
         self.v_value = tk.IntVar(value=current_v)
 
         # Red Scale
-        self.y_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="Y (Luminance)", variable=self.y_value)
+        self.y_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="Y (Luminance)", variable=self.y_value, length= 200)
         self.y_scale.pack()
         # Green Scale
-        self.u_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="U (Chrominance - Blue difference)", variable=self.u_value)
+        self.u_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="U (Chrominance - Blue difference)", variable=self.u_value, length=200)
         self.u_scale.pack()
         # Blue Scale
-        self.v_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="V (Chrominance - Red difference)", variable=self.v_value)
+        self.v_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="V (Chrominance - Red difference)", variable=self.v_value, length=200)
         self.v_scale.pack()
 
         self.reset_button = tk.Button(self, text="Reset", command=self.reset_color)
@@ -1466,6 +1467,31 @@ def save_image() -> None:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save image: {e}")
 
+def save_image_cmyk() -> None:
+    """
+    Lưu ảnh hiện tại ở chế độ CMYK với các định dạng hỗ trợ CMYK.
+    """
+    global img_current
+    if img_current is None:
+        messagebox.showerror("Error", "No image to save.")
+        return
+
+    if img_current.mode != "CMYK":
+        img_current = img_current.convert("CMYK")
+    
+    # Các định dạng hỗ trợ CMYK
+    filetypes = [
+        ("TIFF", "*.tiff;*.tif"),
+        ("JPEG", "*.jpg;*.jpeg"),
+    ]
+
+    file_path = filedialog.asksaveasfilename(defaultextension=".tiff", filetypes=filetypes)
+    if file_path:
+        try:
+            img_current.save(file_path)
+            messagebox.showinfo("Success", f"Image saved as {file_path}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save image: {e}")
 
 class AddSubtractImageWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):
@@ -1940,6 +1966,7 @@ if __name__ == "__main__":
 
     file_menu.add_command(label="Open", command=open_image)
     file_menu.add_command(label="Save", command=save_image)
+    file_menu.add_command(label="Save CMYK mode", command=save_image_cmyk)
     file_menu.add_command(label="Exit", command=quit)
     edit_menu.add_command(label="Resize", command=lambda: open_resize_window(app))
     edit_menu.add_command(label="Change transparency", command=lambda: open_tpc_window(app))

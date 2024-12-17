@@ -720,10 +720,10 @@ class EditYUVColorWindow(tk.Toplevel):
         self.y_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="Y (Luminance)", variable=self.y_value, length= 200)
         self.y_scale.pack()
         # Green Scale
-        self.u_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="U (Chrominance - Blue difference)", variable=self.u_value, length=200)
+        self.u_scale = tk.Scale(self, from_=-100, to=100, orient="horizontal", label="U (Chrominance - Red difference)", variable=self.u_value, length=200)
         self.u_scale.pack()
         # Blue Scale
-        self.v_scale = tk.Scale(self, from_=0, to=100, orient="horizontal", label="V (Chrominance - Red difference)", variable=self.v_value, length=200)
+        self.v_scale = tk.Scale(self, from_=-100, to=100, orient="horizontal", label="V (Chrominance - Blue difference)", variable=self.v_value, length=200)
         self.v_scale.pack()
 
         self.reset_button = tk.Button(self, text="Reset", command=self.reset_color)

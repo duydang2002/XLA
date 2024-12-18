@@ -1709,11 +1709,21 @@ class InvertWindow(tk.Toplevel):
 
     def apply_invert(self):
         global img_temp, label_temp
-        img_array = np.array(img_temp)
-        transformed_img_array = 255 - img_array
-        transformed_img_array = np.clip(transformed_img_array, 0, 255).astype(np.uint8)
-        transformed_img = Image.fromarray(transformed_img_array)
-        display_image(transformed_img, label_temp)
+        # Convert image to numpy array
+        local_image_current = img_current.convert('RGB')
+        img_np = np.array(local_image_current)
+        # Invert colors
+        img_np = 255 - img_np
+        # Convert back to PIL image
+        local_img_temp = Image.fromarray(img_np)
+        # Update image_temp and display
+        img_temp = local_img_temp.convert('RGBA')
+        display_image(local_img_temp, label_temp)
+        # img_array = np.array(img_temp)
+        # transformed_img_array = 255 - img_array
+        # transformed_img_array = np.clip(transformed_img_array, 0, 255).astype(np.uint8)
+        # transformed_img = Image.fromarray(transformed_img_array)
+        # display_image(transformed_img, label_temp)
 
 class ThresholdWindow(tk.Toplevel):
     def __init__(self, parent: tk.Tk):

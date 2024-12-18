@@ -1711,6 +1711,7 @@ class InvertWindow(tk.Toplevel):
         global img_temp, label_temp
         img_array = np.array(img_temp)
         transformed_img_array = 255 - img_array
+        transformed_img_array = np.clip(transformed_img_array, 0, 255).astype(np.uint8)
         transformed_img = Image.fromarray(transformed_img_array)
         display_image(transformed_img, label_temp)
 
@@ -1923,7 +1924,8 @@ class PowerWindow(tk.Toplevel):
         c = 1
         gamma = self.gamma.get()
         img_array = np.array(img_temp)
-        transformed_img_array = c * np.power(img_array, gamma)
+        normalized_img_array = img_array / 255
+        transformed_img_array = c * np.power(normalized_img_array, gamma) * 255
         transformed_img_array = np.clip(transformed_img_array, 0, 255).astype(np.uint8)
         transformed_img = Image.fromarray(transformed_img_array)
         display_image(transformed_img, label_temp)
